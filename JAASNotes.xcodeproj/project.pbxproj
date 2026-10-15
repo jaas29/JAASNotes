@@ -1,0 +1,494 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1000000000000000000B011 /* JAASNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000F010 /* JAASNotesApp.swift */; };
+		A1000000000000000000B012 /* LibraryShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000F012 /* LibraryShellView.swift */; };
+		A1000000000000000000B013 /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000F015 /* AppConfigurationTests.swift */; };
+		A1000000000000000000B014 /* LaunchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000F017 /* LaunchUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1000000000000000000C051 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1000000000000000000A001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1000000000000000000A030;
+			remoteInfo = JAASNotes;
+		};
+		A1000000000000000000C052 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1000000000000000000A001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1000000000000000000A030;
+			remoteInfo = JAASNotes;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A1000000000000000000F001 /* JAASNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JAASNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000F002 /* JAASNotesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JAASNotesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000F003 /* JAASNotesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JAASNotesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000F004 /* JAASNotes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = JAASNotes; sourceTree = "<group>"; };
+		A1000000000000000000F005 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		A1000000000000000000F010 /* JAASNotesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JAASNotesApp.swift; sourceTree = "<group>"; };
+		A1000000000000000000F012 /* LibraryShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryShellView.swift; sourceTree = "<group>"; };
+		A1000000000000000000F013 /* JAASNotes.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JAASNotes.entitlements; sourceTree = "<group>"; };
+		A1000000000000000000F015 /* AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000F017 /* LaunchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchUITests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1000000000000000000D041 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1000000000000000000D044 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1000000000000000000D046 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1000000000000000000E002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000F001 /* JAASNotes.app */,
+				A1000000000000000000F002 /* JAASNotesTests.xctest */,
+				A1000000000000000000F003 /* JAASNotesUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E004 /* JAASNotes */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000E005 /* App */,
+				A1000000000000000000E006 /* Features */,
+				A1000000000000000000E008 /* Resources */,
+			);
+			path = JAASNotes;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E005 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000F010 /* JAASNotesApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E006 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000E007 /* Library */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E007 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000F012 /* LibraryShellView.swift */,
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E008 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000F013 /* JAASNotes.entitlements */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E009 /* JAASNotesTests */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000E00A /* Unit */,
+			);
+			path = JAASNotesTests;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E00A /* Unit */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000F015 /* AppConfigurationTests.swift */,
+			);
+			path = Unit;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E00B /* JAASNotesUITests */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000F017 /* LaunchUITests.swift */,
+			);
+			path = JAASNotesUITests;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000E00C /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000F005 /* AGENTS.md */,
+				A1000000000000000000E004 /* JAASNotes */,
+				A1000000000000000000E009 /* JAASNotesTests */,
+				A1000000000000000000E00B /* JAASNotesUITests */,
+				A1000000000000000000E002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1000000000000000000A030 /* JAASNotes */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000000000000000000A061 /* Build configuration list for PBXNativeTarget "JAASNotes" */;
+			buildPhases = (
+				A1000000000000000000D040 /* Sources */,
+				A1000000000000000000D041 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JAASNotes;
+			productName = JAASNotes;
+			productReference = A1000000000000000000F001 /* JAASNotes.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A1000000000000000000A031 /* JAASNotesTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000000000000000000A062 /* Build configuration list for PBXNativeTarget "JAASNotesTests" */;
+			buildPhases = (
+				A1000000000000000000D043 /* Sources */,
+				A1000000000000000000D044 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1000000000000000000C041 /* PBXTargetDependency */,
+			);
+			name = JAASNotesTests;
+			productName = JAASNotesTests;
+			productReference = A1000000000000000000F002 /* JAASNotesTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A1000000000000000000A032 /* JAASNotesUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000000000000000000A063 /* Build configuration list for PBXNativeTarget "JAASNotesUITests" */;
+			buildPhases = (
+				A1000000000000000000D045 /* Sources */,
+				A1000000000000000000D046 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1000000000000000000C042 /* PBXTargetDependency */,
+			);
+			name = JAASNotesUITests;
+			productName = JAASNotesUITests;
+			productReference = A1000000000000000000F003 /* JAASNotesUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1000000000000000000A001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					A1000000000000000000A030 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					A1000000000000000000A031 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = A1000000000000000000A030;
+					};
+					A1000000000000000000A032 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = A1000000000000000000A030;
+					};
+				};
+			};
+			buildConfigurationList = A1000000000000000000A060 /* Build configuration list for PBXProject "JAASNotes" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1000000000000000000E00C /* Main */;
+			productRefGroup = A1000000000000000000E002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1000000000000000000A030 /* JAASNotes */,
+				A1000000000000000000A031 /* JAASNotesTests */,
+				A1000000000000000000A032 /* JAASNotesUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1000000000000000000D040 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000B011 /* JAASNotesApp.swift in Sources */,
+				A1000000000000000000B012 /* LibraryShellView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1000000000000000000D043 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000B013 /* AppConfigurationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1000000000000000000D045 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000B014 /* LaunchUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1000000000000000000C041 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1000000000000000000A030 /* JAASNotes */;
+			targetProxy = A1000000000000000000C051 /* PBXContainerItemProxy */;
+		};
+		A1000000000000000000C042 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1000000000000000000A030 /* JAASNotes */;
+			targetProxy = A1000000000000000000C052 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A1000000000000000000E070 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A1000000000000000000E071 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = s;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A1000000000000000000E072 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSET_CATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = JAASNotes/Resources/JAASNotes.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = JAASNotes;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.jaasnotes.JAASNotes;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		A1000000000000000000E073 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSET_CATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = JAASNotes/Resources/JAASNotes.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = JAASNotes;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.jaasnotes.JAASNotes;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		A1000000000000000000E074 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.jaasnotes.JAASNotesTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JAASNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/JAASNotes";
+			};
+			name = Debug;
+		};
+		A1000000000000000000E075 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.jaasnotes.JAASNotesTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JAASNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/JAASNotes";
+			};
+			name = Release;
+		};
+		A1000000000000000000E076 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.jaasnotes.JAASNotesUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = JAASNotes;
+			};
+			name = Debug;
+		};
+		A1000000000000000000E077 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.jaasnotes.JAASNotesUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = JAASNotes;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1000000000000000000A060 /* Build configuration list for PBXProject "JAASNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000E070 /* Debug */,
+				A1000000000000000000E071 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000A061 /* Build configuration list for PBXNativeTarget "JAASNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000E072 /* Debug */,
+				A1000000000000000000E073 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000A062 /* Build configuration list for PBXNativeTarget "JAASNotesTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000E074 /* Debug */,
+				A1000000000000000000E075 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000A063 /* Build configuration list for PBXNativeTarget "JAASNotesUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000E076 /* Debug */,
+				A1000000000000000000E077 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1000000000000000000A001 /* Project object */;
+}

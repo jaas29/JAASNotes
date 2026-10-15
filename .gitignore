@@ -1,0 +1,21 @@
+# Xcode / build output
+DerivedData/
+.build/
+*.xcresult
+
+# Per-user Xcode state
+xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# Local signing or environment overrides (never commit team IDs)
+*.local.xcconfig
+
+# Real user libraries and secrets
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+/Library/
+.env
