@@ -77,3 +77,60 @@ codesign -d --entitlements - "$APP"
 - **Verify the location stays out of iCloud.** The repository is outside Desktop/Documents now. If it is ever moved back into an iCloud-synced folder, the signing failure described above will return.
 - The placeholder shell has no data, so nothing is persisted yet.
 - The UI test depends on the system's accessibility permissions for the test runner. It passed here; a fresh machine may need the runner granted permission.
+
+## 01-02 — Version-1 model, serial repository, first-launch initialization
+
+- **Status:** pass (complete)
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Environment
+
+- Same as 01-01: Apple M3 Pro, macOS 26.6.2, Xcode 26.3 (Swift 6.2.4), deployment target macOS 14.0, Swift 5 mode with complete concurrency checks.
+- Stores are disk-backed SQLite files in unique temporary directories. No in-memory stores.
+
+### Changes
+
+- `JAASNotes/Persistence/JAASNotes.xcdatamodeld`: version-1 model (`JAASNotes.xcdatamodel`, identifier `1`). Entities:
+  - `LibraryMetadata`: `libraryID` (unique), `createdAt`, `formatVersion` (Int32).
+  - `Folder`: `id` (unique), `name`, `normalizedName` (unique), `createdAt`, `modifiedAt`, `isDefault`; to-many `notes` with Deny delete.
+  - `Note`: `id` (unique), `title`, `bodyPlainText`, `createdAt`, `modifiedAt`, `deletedAt` (optional), `revision` (Int64), required `folder` with Deny delete.
+- `JAASNotes/Persistence/CoreData/LibraryRecords.swift`: `NSManagedObject` subclasses named to match the model.
+- `JAASNotes/Persistence/CoreData/CoreDataStack.swift`: opens the SQLite store with automatic migration disabled, and closes it cleanly.
+- `JAASNotes/Persistence/CoreData/LibraryRepository.swift`: an `actor` that owns one private-queue context. Each mutation runs in one transaction and saves before returning; failures roll back. Callers receive value snapshots only.
+- `JAASNotes/Persistence/Files/LibraryLocation.swift`: stable layout `<root>/Library/Store.sqlite`. The root is `Application Support/JAASNotes` by default and is injected in tests.
+- `JAASNotes/Domain/FolderName.swift`: trimming, normalized key (case- and diacritic-insensitive, canonical composition), and reserved names `All Notes` and `Recently Deleted`.
+- `JAASNotes/Domain/LibraryTypes.swift`: `LibraryMetadataSnapshot`, `FolderSnapshot`, `NoteSnapshot`, and typed `LibraryError`.
+- Tests: `JAASNotesTests/Unit/FolderNameTests.swift`, `JAASNotesTests/Unit/LibraryLocationTests.swift`, `JAASNotesTests/Integration/LibraryRepositoryTests.swift`.
+
+### Behavior implemented
+
+- First initialization writes the metadata record and the default `Notes` folder in one save. A repeat call returns the same metadata and adds nothing.
+- The initializer refuses inconsistent partial data (folders without metadata, several metadata records, or not exactly one default folder). It reports the problem and does not repair it.
+- `createFolder` rejects empty, reserved, and duplicate names. Duplicate detection uses the normalized key.
+- `createNote` requires an existing folder and starts notes at revision 1.
+- `activeNotes` excludes trashed notes (`deletedAt != nil`).
+
+Scope note: `createFolder` and `createNote` are implemented here because the uniqueness and folder-relationship invariants need real writes to test. Folder rename, moves, and the note UI remain in 01-03 and 01-05.
+
+### Commands run
+
+```sh
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -configuration Debug -destination 'platform=macOS' -derivedDataPath .build/DerivedData build
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/JAASNotes-03.xcresult test
+```
+
+### Results
+
+- Build: **BUILD SUCCEEDED**. Two Sendable warnings from the first build were fixed by marking the transaction-helper closures `@Sendable`. The final build reports no warnings from project code.
+- Tests: **TEST SUCCEEDED**, 18 unit and integration tests plus the existing UI test.
+  - `FolderNameTests` (6): trimming and display spelling, case and diacritic normalization, canonically equivalent spellings, distinct names, empty input, reserved names.
+  - `LibraryLocationTests` (2): stable store path, default root name.
+  - `LibraryRepositoryTests` (9): first-launch metadata and single default folder; no metadata before initialization; repeat initialization changes nothing; library, folders, and notes survive closing and reopening the SQLite store; duplicate folder names rejected ignoring case and diacritics; invalid folder names rejected without changing data; note requires an existing folder; new notes start at revision 1 with unique IDs; Unicode title and body stored losslessly (compared by scalars, so canonical equivalence cannot hide a change).
+
+### Remaining risks and gaps
+
+- The app does not open the library yet. `LibraryShellView` is unchanged, so 01-02 is proven by tests, not by the running UI. The first-launch flow in the app comes with 01-03.
+- Store-open failures (corrupt or future-version stores) are mapped to `LibraryError.storeLoadFailed`, but no recovery UI exists until 01-08.
+- Test cleanup uses `try?` in `defer` blocks, because `defer` cannot await. Application code does not do this.
+- Migrations are not exercised: there is only version 1 and no older version to migrate from.

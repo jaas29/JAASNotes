@@ -11,6 +11,16 @@
 		A1000000000000000000B012 /* LibraryShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000F012 /* LibraryShellView.swift */; };
 		A1000000000000000000B013 /* AppConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000F015 /* AppConfigurationTests.swift */; };
 		A1000000000000000000B014 /* LaunchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000F017 /* LaunchUITests.swift */; };
+		B729FB1363979BD69312A3A0 /* FolderName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D97F77571923CBF94429079 /* FolderName.swift */; };
+		32D118E4C6E0A88E6C6D9C00 /* LibraryTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACB5A9C8BC67F00A488BF54 /* LibraryTypes.swift */; };
+		8811517B4CAAC38922363E93 /* LibraryLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C12181B38327269240D305D /* LibraryLocation.swift */; };
+		F105F9F934322638C850EEA6 /* CoreDataStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EDF2FDB885C4055FFDBD69 /* CoreDataStack.swift */; };
+		0CF71032E0740AFE5DE9A431 /* LibraryRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3BE3660B0F89B9392591D76 /* LibraryRecords.swift */; };
+		F0FD0431AE44DD40D20CE4FE /* LibraryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2211756ABB5E300E9AD3EF00 /* LibraryRepository.swift */; };
+		1158DA1911FE07C5EB2690CC /* JAASNotes.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = C1A802FC460BEB44484F6470 /* JAASNotes.xcdatamodeld */; };
+		B225DD64124A3EDB1DB79A1E /* FolderNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 397D352BCBE4866AAEEA0001 /* FolderNameTests.swift */; };
+		3FE79FAF114888E7D7D2D232 /* LibraryLocationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E310C65C92735F9CF7FE9371 /* LibraryLocationTests.swift */; };
+		DBA1C12C0A25EB0CEF8DE83A /* LibraryRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E38C6E1A21A6224940F475 /* LibraryRepositoryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,6 +51,16 @@
 		A1000000000000000000F013 /* JAASNotes.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JAASNotes.entitlements; sourceTree = "<group>"; };
 		A1000000000000000000F015 /* AppConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigurationTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000F017 /* LaunchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchUITests.swift; sourceTree = "<group>"; };
+		8D97F77571923CBF94429079 /* FolderName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderName.swift; sourceTree = "<group>"; };
+		CACB5A9C8BC67F00A488BF54 /* LibraryTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryTypes.swift; sourceTree = "<group>"; };
+		0C12181B38327269240D305D /* LibraryLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryLocation.swift; sourceTree = "<group>"; };
+		B8EDF2FDB885C4055FFDBD69 /* CoreDataStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataStack.swift; sourceTree = "<group>"; };
+		D3BE3660B0F89B9392591D76 /* LibraryRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryRecords.swift; sourceTree = "<group>"; };
+		2211756ABB5E300E9AD3EF00 /* LibraryRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryRepository.swift; sourceTree = "<group>"; };
+		C1A802FC460BEB44484F6470 /* JAASNotes.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodeld; path = JAASNotes.xcdatamodeld; sourceTree = "<group>"; };
+		397D352BCBE4866AAEEA0001 /* FolderNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderNameTests.swift; sourceTree = "<group>"; };
+		E310C65C92735F9CF7FE9371 /* LibraryLocationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryLocationTests.swift; sourceTree = "<group>"; };
+		E3E38C6E1A21A6224940F475 /* LibraryRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryRepositoryTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +101,8 @@
 		A1000000000000000000E004 /* JAASNotes */ = {
 			isa = PBXGroup;
 			children = (
+				ECD451319AE08B060BCF2795 /* Domain */,
+				9AAE47446B102AB1BF59982D /* Persistence */,
 				A1000000000000000000E005 /* App */,
 				A1000000000000000000E006 /* Features */,
 				A1000000000000000000E008 /* Resources */,
@@ -123,6 +145,7 @@
 		A1000000000000000000E009 /* JAASNotesTests */ = {
 			isa = PBXGroup;
 			children = (
+				6B27C01255C966CA6BE33D96 /* Integration */,
 				A1000000000000000000E00A /* Unit */,
 			);
 			path = JAASNotesTests;
@@ -131,6 +154,8 @@
 		A1000000000000000000E00A /* Unit */ = {
 			isa = PBXGroup;
 			children = (
+				397D352BCBE4866AAEEA0001 /* FolderNameTests.swift */,
+				E310C65C92735F9CF7FE9371 /* LibraryLocationTests.swift */,
 				A1000000000000000000F015 /* AppConfigurationTests.swift */,
 			);
 			path = Unit;
@@ -153,6 +178,51 @@
 				A1000000000000000000E00B /* JAASNotesUITests */,
 				A1000000000000000000E002 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		ECD451319AE08B060BCF2795 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				8D97F77571923CBF94429079 /* FolderName.swift */,
+				CACB5A9C8BC67F00A488BF54 /* LibraryTypes.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		9AAE47446B102AB1BF59982D /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				D96F1B86A0EF3389F00E2271 /* Files */,
+				B56B988A6A52543F407E24C1 /* CoreData */,
+				C1A802FC460BEB44484F6470 /* JAASNotes.xcdatamodeld */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		D96F1B86A0EF3389F00E2271 /* Files */ = {
+			isa = PBXGroup;
+			children = (
+				0C12181B38327269240D305D /* LibraryLocation.swift */,
+			);
+			path = Files;
+			sourceTree = "<group>";
+		};
+		B56B988A6A52543F407E24C1 /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				B8EDF2FDB885C4055FFDBD69 /* CoreDataStack.swift */,
+				D3BE3660B0F89B9392591D76 /* LibraryRecords.swift */,
+				2211756ABB5E300E9AD3EF00 /* LibraryRepository.swift */,
+			);
+			path = CoreData;
+			sourceTree = "<group>";
+		};
+		6B27C01255C966CA6BE33D96 /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				E3E38C6E1A21A6224940F475 /* LibraryRepositoryTests.swift */,
+			);
+			path = Integration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -256,6 +326,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B729FB1363979BD69312A3A0 /* FolderName.swift in Sources */,
+				32D118E4C6E0A88E6C6D9C00 /* LibraryTypes.swift in Sources */,
+				8811517B4CAAC38922363E93 /* LibraryLocation.swift in Sources */,
+				F105F9F934322638C850EEA6 /* CoreDataStack.swift in Sources */,
+				0CF71032E0740AFE5DE9A431 /* LibraryRecords.swift in Sources */,
+				F0FD0431AE44DD40D20CE4FE /* LibraryRepository.swift in Sources */,
+				1158DA1911FE07C5EB2690CC /* JAASNotes.xcdatamodeld in Sources */,
 				A1000000000000000000B011 /* JAASNotesApp.swift in Sources */,
 				A1000000000000000000B012 /* LibraryShellView.swift in Sources */,
 			);
@@ -265,6 +342,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B225DD64124A3EDB1DB79A1E /* FolderNameTests.swift in Sources */,
+				3FE79FAF114888E7D7D2D232 /* LibraryLocationTests.swift in Sources */,
+				DBA1C12C0A25EB0CEF8DE83A /* LibraryRepositoryTests.swift in Sources */,
 				A1000000000000000000B013 /* AppConfigurationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

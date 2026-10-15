@@ -313,7 +313,7 @@ Use official documentation and verify availability against the chosen SDK during
 
 01-01: Confirm development macOS/chip/Xcode, record the compatible stable toolchain and macOS 14 deployment target, then create the Xcode app and test targets with a shared scheme and sandboxed three-column shell. Complete when the native app builds and opens on the owner's Mac and the environment is recorded. [COMPLETE]
 
-01-02: Implement version-1 Note, Folder, and LibraryMetadata models, the isolated serial repository, stable library paths, and transactional first-launch initialization. Requires 01-01. Complete when SQLite integration tests verify invariants, one default folder, no duplicate initialization, and persisted data after stack recreation. [NOT COMPLETE]
+01-02: Implement version-1 Note, Folder, and LibraryMetadata models, the isolated serial repository, stable library paths, and transactional first-launch initialization. Requires 01-01. Complete when SQLite integration tests verify invariants, one default folder, no duplicate initialization, and persisted data after stack recreation. [COMPLETE]
 
 01-03: Implement note creation and plain-text title/body editing with stable selection and NSTextView integration. Requires 01-02. Complete when multiple notes can be created and edited, Unicode/IME input and native text undo work, and switching selections retains drafts. [NOT COMPLETE]
 

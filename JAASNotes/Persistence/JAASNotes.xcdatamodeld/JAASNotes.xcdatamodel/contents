@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23E224" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="1">
+    <entity name="LibraryMetadata" representedClassName="LibraryMetadataRecord" syncable="YES" codeGenerationType="none">
+        <attribute name="libraryID" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="formatVersion" attributeType="Integer 32" defaultValueString="1" usesScalarValueType="YES"/>
+        <constraints>
+            <constraint value="libraryID"/>
+        </constraints>
+    </entity>
+    <entity name="Folder" representedClassName="FolderRecord" syncable="YES" codeGenerationType="none">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="normalizedName" attributeType="String" defaultValueString=""/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="modifiedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <relationship name="notes" optional="YES" toMany="YES" deletionRule="Deny" destinationEntity="Note" inverseName="folder" inverseEntity="Note"/>
+        <constraints>
+            <constraint value="id"/>
+            <constraint value="normalizedName"/>
+        </constraints>
+    </entity>
+    <entity name="Note" representedClassName="NoteRecord" syncable="YES" codeGenerationType="none">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="title" attributeType="String" defaultValueString=""/>
+        <attribute name="bodyPlainText" attributeType="String" defaultValueString=""/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="modifiedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="revision" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="folder" optional="NO" maxCount="1" deletionRule="Deny" destinationEntity="Folder" inverseName="notes" inverseEntity="Folder"/>
+        <constraints>
+            <constraint value="id"/>
+        </constraints>
+    </entity>
+</model>
