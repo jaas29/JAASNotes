@@ -134,3 +134,64 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - Store-open failures (corrupt or future-version stores) are mapped to `LibraryError.storeLoadFailed`, but no recovery UI exists until 01-08.
 - Test cleanup uses `try?` in `defer` blocks, because `defer` cannot await. Application code does not do this.
 - Migrations are not exercised: there is only version 1 and no older version to migrate from.
+
+## 01-03 — Note creation and plain-text editing
+
+- **Status:** NOT COMPLETE. Everything below passes automatically. One acceptance item still needs a human check: a real Japanese or Chinese input-method session in the running app (see Remaining gaps).
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Environment
+
+- Same as 01-01 and 01-02: Apple M3 Pro, macOS 26.6.2, Xcode 26.3 (Swift 6.2.4), deployment target macOS 14.0.
+- Accessibility and UI tests ran on this Mac; the test runner needs permission to control the app.
+
+### Changes
+
+- `Features/Library/LibraryModel.swift`: `@MainActor @Observable` app state. It opens the library, holds the folder and note snapshots, the sidebar and note selection, in-memory drafts (title and body keyed by note ID), and a title-focus request for a new note. New notes go to the selected folder, or to the default Notes folder when All Notes is selected.
+- `Features/Editor/PlainTextEditor.swift`: `NSViewRepresentable` over `NSTextView` (plain text, native undo, spelling, and input methods). `PlainTextEditorDelegate` reports committed text only. It skips marked (in-composition) text and never replaces text while a composition is in progress.
+- `Features/Editor/NoteEditorView.swift`: title `TextField` and body editor. Each note gets a fresh editor (`.id(note.id)`), so each note has its own undo history. A new note takes title focus.
+- `Features/NoteList/NoteListView.swift`: rows show the draft title (or "Untitled Note"), a two-line preview, and the modified date. Empty state with a New Note action.
+- `Features/Library/LibraryShellView.swift`: three columns. The sidebar lists All Notes and the folders from the store. Opening, failure, and operation-error states are shown.
+- `App/JAASNotesApp.swift`: File > New Note with Cmd-N.
+- `Domain/LibraryTypes.swift`: `LibraryError` now conforms to `LocalizedError`. Messages never include stored details or paths.
+- Debug-only test hook: `JAASNOTES_TEST_LIBRARY_NAME` puts the library under the app's sandbox temporary folder. The hook is compiled out of release builds, so tests never touch Application Support.
+- Sidebar: the placeholder "Recently Deleted" item was removed. It returns with 01-07 (soft deletion and Recently Deleted).
+
+### Commands run
+
+```sh
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -configuration Debug -destination 'platform=macOS' -derivedDataPath .build/DerivedData build
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/JAASNotes-09-<n>.xcresult test
+```
+
+### Results
+
+- Build: **BUILD SUCCEEDED**, no warnings from project code.
+- Tests: **TEST SUCCEEDED** on two consecutive full runs.
+  - Unit (25): the 6 folder-name, 2 location, 9 repository, and 1 bundle-ID tests from earlier substages, plus 5 new `LibraryModelTests` and 2 `PlainTextEditorDelegateTests`.
+    - `LibraryModelTests` (new): opening creates the default folder; creating notes selects and focuses each new note; new notes go to the default folder under All Notes; drafts survive switching notes; a corrupt store file is reported as a failure and left byte-for-byte unchanged.
+    - `PlainTextEditorDelegateTests` (new): committed typing reports the whole text, including Unicode and emoji; marked text is not reported until it is committed (`setMarkedText` then `insertText`).
+  - UI (3): `LaunchUITests` (shell and empty states) and `NoteEditingUITests` (2):
+    - `testCreateEditSwitchAndKeepDrafts`: creates two notes, types Unicode, including a decomposed sequence in the body and Japanese text, then switches back and checks both drafts.
+    - `testNativeUndoRevertsBodyTyping`: Cmd-Z in the body removes the typed text. This is native `NSTextView` undo driven by real keystrokes.
+
+### Acceptance check against the 01-03 criteria
+
+| Criterion | Evidence | Status |
+| --- | --- | --- |
+| Multiple notes can be created and edited | Unit and UI tests | Pass |
+| Unicode input works | UI test types emoji, accents, and Japanese; unit test checks the reported text | Pass |
+| Native text undo works | UI test with Cmd-Z | Pass |
+| IME (marked text) works | Delegate-level test only: marked text is not reported, and commit reports the final text | **Partial. No live input-method session has been run.** |
+| Switching selection retains drafts | `LibraryModelTests` and `testCreateEditSwitchAndKeepDrafts` | Pass |
+
+### Remaining gaps and risks
+
+- **Live IME not tested.** The delegate test shows the marked-text protocol is handled, but no real Japanese or Chinese keyboard session has run. Needed: switch to a Japanese input source, type a composed phrase in the body and in the title, and confirm nothing is lost and the composed text commits once.
+- **Drafts are in memory only.** Quitting the app loses edits made since the last save. Autosave and durable commits come in 01-04. Note creation itself is saved immediately.
+- **The list does not reorder while typing yet**, because drafts don't change `modifiedAt`. Reordering after saves is 01-05's job.
+- **Focus on a new note** depends on a one-turn delay (`await Task.yield()`). Without it, the title field of a second new note did not take focus in UI tests. The timing is SwiftUI-specific, so it may need revisiting after the 01-09 focus work.
+- **UI test libraries** are created in the app's sandbox temporary folder. The test runner can't clean them up, so macOS removes them with its temporary-file cleanup.
+- VoiceOver and keyboard-only passes are not done. They belong to 01-09.
+

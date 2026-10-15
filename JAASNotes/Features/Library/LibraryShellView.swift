@@ -1,37 +1,69 @@
 import SwiftUI
 
-/// Placeholder three-column shell. Real folders, notes, and the editor arrive in later substages.
+/// Three-column shell: folders, note list, and editor. Opening the library happens when the window appears.
 struct LibraryShellView: View {
-    enum SidebarItem: Hashable {
-        case allNotes
-        case recentlyDeleted
-    }
-
-    @State private var selection: SidebarItem? = .allNotes
+    @Bindable var model: LibraryModel
 
     var body: some View {
+        Group {
+            switch model.phase {
+            case .loading:
+                ProgressView("Opening Library")
+            case .failed(let message):
+                ContentUnavailableView(
+                    "Library Unavailable",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(message)
+                )
+                .accessibilityIdentifier("libraryFailure")
+            case .ready:
+                splitView
+            }
+        }
+        .task {
+            await model.loadIfNeeded()
+        }
+        .alert(
+            "Action Failed",
+            isPresented: Binding(
+                get: { model.operationError != nil },
+                set: { if !$0 { model.clearOperationError() } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.operationError ?? "")
+        }
+    }
+
+    private var splitView: some View {
         NavigationSplitView {
-            List(selection: $selection) {
+            List(selection: $model.sidebarSelection) {
                 Label("All Notes", systemImage: "note.text")
-                    .tag(SidebarItem.allNotes)
-                Label("Recently Deleted", systemImage: "trash")
-                    .tag(SidebarItem.recentlyDeleted)
+                    .tag(LibraryModel.SidebarSelection.allNotes)
+
+                Section("Folders") {
+                    ForEach(model.folders) { folder in
+                        Label(folder.name, systemImage: folder.isDefault ? "tray" : "folder")
+                            .tag(LibraryModel.SidebarSelection.folder(folder.id))
+                    }
+                }
             }
             .navigationTitle("Folders")
             .accessibilityIdentifier("sidebar")
         } content: {
-            ContentUnavailableView(
-                "No Notes",
-                systemImage: "note.text",
-                description: Text("Notes will appear here.")
-            )
-            .accessibilityIdentifier("noteList")
+            NoteListView(model: model)
         } detail: {
-            ContentUnavailableView(
-                "No Note Selected",
-                systemImage: "square.and.pencil"
-            )
-            .accessibilityIdentifier("editor")
+            if let note = model.selectedNote {
+                NoteEditorView(model: model, note: note)
+                    .id(note.id)
+            } else {
+                ContentUnavailableView(
+                    "No Note Selected",
+                    systemImage: "square.and.pencil"
+                )
+                .accessibilityIdentifier("editor")
+            }
         }
     }
 }

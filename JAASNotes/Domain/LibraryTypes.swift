@@ -36,3 +36,25 @@ enum LibraryError: Error, Equatable, Sendable {
     case storeLoadFailed(String)
     case saveFailed(String)
 }
+
+extension LibraryError: LocalizedError {
+    /// User-facing text. Associated storage details are deliberately omitted to keep paths and raw errors out of the UI.
+    var errorDescription: String? {
+        switch self {
+        case .emptyFolderName:
+            "Folder names cannot be empty."
+        case .reservedFolderName:
+            "That name is reserved for a built-in list."
+        case .duplicateFolderName:
+            "A folder with that name already exists."
+        case .folderNotFound:
+            "The folder no longer exists."
+        case .libraryInconsistent(let detail):
+            "The library data is inconsistent, so nothing was changed. \(detail)"
+        case .storeLoadFailed:
+            "The library database could not be opened."
+        case .saveFailed:
+            "Your changes could not be saved."
+        }
+    }
+}

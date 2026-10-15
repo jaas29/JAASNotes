@@ -49,3 +49,17 @@ Architecture choices and approved changes. Entries are added as decisions are ma
 - **Why:** Matches the plan's single-writer rule and explicit transaction boundaries. Disabling automatic migration follows the plan's rule against blind migration of the only live copy.
 - **Consequence:** A store created by a different model version will fail to open until a tested migration exists. That is the intended behavior and is covered by the 01-08 and 02-01 work.
 
+## D-008 — Debug-only test library name; UI tests use the app's sandbox temporary folder
+
+- **Date:** 2026-10-15
+- **Decision:** In Debug builds only, `JAASNOTES_TEST_LIBRARY_NAME` places the library under the app's sandbox temporary folder (`JAASNotesTest-<name>`). The hook is compiled out of release builds. The UI tests pass a unique name per test.
+- **Why:** The first attempt passed an absolute path from the test runner's temporary folder. The sandboxed app could not write there, so the app never opened the library. The name-based hook also keeps tests away from Application Support, which the plan requires.
+- **Consequence:** UI test libraries are not removed by the tests. macOS clears the app's temporary folder.
+
+## D-009 — Note editing: one NSTextView per note; drafts are in memory until autosave
+
+- **Date:** 2026-10-15
+- **Decision:** Each note's editor is recreated when the selected note changes (`.id(note.id)`). Unsaved title and body live in `LibraryModel.drafts` until 01-04 introduces autosave.
+- **Why:** A fresh editor gives each note its own undo history and avoids resetting `NSTextView.string` during SwiftUI updates. Keeping drafts in memory until 01-04 keeps the save path in one place.
+- **Consequence:** Quitting before 01-04 loses unsaved edits. Recreating the editor resets scroll position when switching notes; that is acceptable for this stage.
+
