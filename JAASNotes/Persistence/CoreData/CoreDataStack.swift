@@ -39,13 +39,19 @@ enum CoreDataStack {
     /// so a foreign file or a newer library is never given Core Data tables or treated as an empty library.
     static func checkCompatibility(of storeURL: URL, with model: NSManagedObjectModel) throws {
         guard FileManager.default.fileExists(atPath: storeURL.path) else { return }
-        // Core Data's own table must be there. Reading metadata through Core Data would write to a foreign file,
-        // so this check uses a read-only SQLite connection first.
-        guard hasCoreDataMetadataTable(storeURL) else {
+        guard try isCompatible(storeURL, with: model) else {
             throw LibraryError.storeLoadFailed(
-                "The library file is not a JAASNotes library. It was not changed."
+                "The library was written by a different version of JAASNotes, or it is not a JAASNotes library. It was not changed."
             )
         }
+    }
+
+    /// True when the file is a Core Data SQLite store that `model` can read without migration. Never writes to the file.
+    static func isCompatible(_ storeURL: URL, with model: NSManagedObjectModel) throws -> Bool {
+        guard FileManager.default.fileExists(atPath: storeURL.path) else { return false }
+        // Core Data's own table must be there. Reading metadata through Core Data would write to a foreign file,
+        // so this check uses a read-only SQLite connection first.
+        guard hasCoreDataMetadataTable(storeURL) else { return false }
         let metadata: [String: Any]
         do {
             metadata = try NSPersistentStoreCoordinator.metadataForPersistentStore(
@@ -58,12 +64,19 @@ enum CoreDataStack {
         }
         // A file without Core Data's model hashes is not a Core Data store. Some Core Data versions treat empty
         // metadata as compatible, so the hash key is required as well.
-        guard metadata[NSStoreModelVersionHashesKey] != nil,
-              model.isConfiguration(withName: nil, compatibleWithStoreMetadata: metadata) else {
-            throw LibraryError.storeLoadFailed(
-                "The library was written by a different version of JAASNotes, or it is not a JAASNotes library. It was not changed."
-            )
+        return metadata[NSStoreModelVersionHashesKey] != nil
+            && model.isConfiguration(withName: nil, compatibleWithStoreMetadata: metadata)
+    }
+
+    /// A model from the compiled bundle, such as version 1 (`JAASNotes`) or the current version (`JAASNotes 2`).
+    static func model(named name: String) throws -> NSManagedObjectModel {
+        let bundle = Bundle(for: BundleToken.self)
+        guard let url = bundle.url(forResource: name, withExtension: "mom", subdirectory: "\(LibraryLocation.folderName).momd"),
+              let model = NSManagedObjectModel(contentsOf: url)
+        else {
+            throw LibraryError.storeLoadFailed("The bundled data model \(name) is missing or unreadable.")
         }
+        return model
     }
 
     /// True when the file is a SQLite database with Core Data's `Z_METADATA` table. Opens read-only and never writes.

@@ -46,6 +46,18 @@ actor DebugSaveFailureStore: NoteStore {
         try await base.deletedNotes()
     }
 
+    func setNotePinned(id: UUID, expectedRevision: Int64, isPinned: Bool) async throws -> NoteSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func deleteFolder(id: UUID) async throws {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func permanentlyDeleteNote(id: UUID, expectedRevision: Int64) async throws {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
     func createFolder(named name: String) async throws -> FolderSnapshot {
         throw LibraryError.saveFailed("Writes are disabled for this test run.")
     }

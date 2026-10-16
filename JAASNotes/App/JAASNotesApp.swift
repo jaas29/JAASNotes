@@ -9,6 +9,9 @@ struct JAASNotesApp: App {
         WindowGroup {
             LibraryShellView(model: appDelegate.model)
         }
+        Settings {
+            SettingsView(model: appDelegate.model)
+        }
         .commands {
             let model = appDelegate.model
 
@@ -28,6 +31,14 @@ struct JAASNotesApp: App {
 
             CommandGroup(after: .newItem) {
                 Divider()
+
+                Button(model.selectedNote?.isPinned == true ? "Unpin Note" : "Pin Note") {
+                    if let note = model.selectedNote {
+                        Task { await model.setPinned(note.id, !note.isPinned) }
+                    }
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .disabled(model.selectedNote == nil || model.isShowingRecentlyDeleted)
 
                 Button("Rename Folder…") {
                     if case .folder(let folderID) = model.sidebarSelection {
@@ -94,6 +105,15 @@ struct JAASNotesApp: App {
             }
 
             CommandGroup(after: .sidebar) {
+                Menu("Sort Notes By") {
+                    ForEach(NoteSortOrder.allCases, id: \.self) { order in
+                        Button(order.title) {
+                            model.sortOrder = order
+                        }
+                    }
+                }
+                .disabled(model.phase != .ready)
+
                 Button("All Notes") {
                     Task { await model.requestSidebarSelection(.allNotes) }
                 }

@@ -24,6 +24,7 @@ struct NoteSnapshot: Equatable, Sendable, Identifiable {
     let modifiedAt: Date
     let deletedAt: Date?
     let revision: Int64
+    let isPinned: Bool
 }
 
 extension NoteSnapshot {
@@ -91,6 +92,42 @@ extension LibraryError: LocalizedError {
         case .saveFailed:
             "Your changes could not be saved."
         }
+    }
+}
+
+/// How the note list is ordered. Pinned notes always come first; this only orders within each group.
+enum NoteSortOrder: String, CaseIterable, Sendable {
+    case modified
+    case created
+    case title
+
+    var title: String {
+        switch self {
+        case .modified: "Date Modified"
+        case .created: "Date Created"
+        case .title: "Title"
+        }
+    }
+}
+
+extension NoteSnapshot {
+    /// The list order: pinned first, then the chosen order, then the UUID string so equal notes never trade places.
+    static func listOrder(_ lhs: NoteSnapshot, _ rhs: NoteSnapshot, by order: NoteSortOrder) -> Bool {
+        if lhs.isPinned != rhs.isPinned {
+            return lhs.isPinned
+        }
+        switch order {
+        case .modified:
+            if lhs.modifiedAt != rhs.modifiedAt { return lhs.modifiedAt > rhs.modifiedAt }
+        case .created:
+            if lhs.createdAt != rhs.createdAt { return lhs.createdAt > rhs.createdAt }
+        case .title:
+            let left = lhs.title.isEmpty ? "Untitled Note" : lhs.title
+            let right = rhs.title.isEmpty ? "Untitled Note" : rhs.title
+            let comparison = left.localizedStandardCompare(right)
+            if comparison != .orderedSame { return comparison == .orderedAscending }
+        }
+        return lhs.id.uuidString < rhs.id.uuidString
     }
 }
 

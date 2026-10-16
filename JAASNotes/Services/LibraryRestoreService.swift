@@ -23,7 +23,8 @@ enum LibraryRestoreService {
     }
 
     /// Replaces the library at `location` with `backup`. The caller must have closed any open store for `location`.
-    /// Works for an empty location too, which restores into a fresh library.
+    /// Works for an empty location too, which restores into a fresh library. A version-1 backup is migrated in staging
+    /// before it is checked, so it can be restored into this version.
     static func restore(
         _ backup: BackupSummary,
         into location: LibraryLocation,
@@ -38,27 +39,43 @@ enum LibraryRestoreService {
         let operationID = UUID().uuidString
         let stagingFolder = LibraryBackupService.stagingDirectory(in: location)
             .appending(path: "restore-\(operationID)", directoryHint: .isDirectory)
-        let candidateLibrary = stagingFolder.appending(path: "Library", directoryHint: .isDirectory)
 
         // Copy the backup into staging and validate that copy. The live library is not touched yet.
         try fileManager.createDirectory(at: stagingFolder, withIntermediateDirectories: true)
         do {
             try fileManager.copyItem(
                 at: backup.url.appending(path: "Library", directoryHint: .isDirectory),
-                to: candidateLibrary
+                to: stagingFolder.appending(path: "Library", directoryHint: .isDirectory)
             )
-            _ = try await LibraryBackupService.validate(LibraryLocation(rootURL: stagingFolder))
+            let staged = LibraryLocation(rootURL: stagingFolder)
+            _ = try await LibraryMigrationService.migrateIfNeeded(staged, takeBackup: false)
+            _ = try await LibraryBackupService.validate(staged)
         } catch {
             try? fileManager.removeItem(at: stagingFolder)
             throw error
         }
 
+        try await install(stagingFolder: stagingFolder, into: location, interruptAt: interruption)
+    }
+
+    /// Swaps a validated candidate in for the library at `location`. `stagingFolder` holds the candidate as `Library/`.
+    /// The current library is moved aside, never deleted. A failure rolls back; an interruption leaves the marker in
+    /// place for `recoverInterruptedRestore`.
+    static func install(
+        stagingFolder: URL,
+        into location: LibraryLocation,
+        interruptAt interruption: InterruptionPoint? = nil
+    ) async throws {
+        let fileManager = FileManager.default
+        let candidateLibrary = stagingFolder.appending(path: "Library", directoryHint: .isDirectory)
+        let operationID = stagingFolder.lastPathComponent
+
         // Record the plan before the first rename, so an interruption can be recovered at startup.
         let libraryURL = location.libraryDirectoryURL
         let hadLibrary = fileManager.fileExists(atPath: libraryURL.path)
         let transaction = Transaction(
-            previousLibrary: hadLibrary ? "Recovery/restore-\(operationID)/Library" : nil,
-            candidate: "Staging/restore-\(operationID)/Library"
+            previousLibrary: hadLibrary ? "Recovery/\(operationID)/Library" : nil,
+            candidate: "Staging/\(operationID)/Library"
         )
         try write(transaction, to: transactionURL(location))
 

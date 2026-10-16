@@ -465,3 +465,40 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - **macOS 14 runtime:** not run. No macOS 14 machine or VM is available. The deployment target is 14.0, so this is a compile-time setting only.
 - **CI:** `.github/workflows/ci.yml` passes on `21b2225` (GitHub Actions, macOS 15 runner, Xcode 26.3): build, unit and integration tests, and UI tests. The previous run failed in `FolderUITests` at the toolbar Move To menu, which the runner could not open; that step now uses the row context menu.
 - **Intel:** not tested.
+
+## 02-01 to 02-03 — Version 2, pinning and sorting, folder removal and permanent deletion
+
+- **Status:** 02-01 to 02-04 COMPLETE. 02-04 keyboard and VoiceOver check reported passed by the owner on macOS 26.6.2 (M3 Pro).
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### 02-01 — Version-2 model and migration
+
+- `JAASNotes 2.xcdatamodel` adds `Note.isPinned` (D-016). The version-1 model is unchanged.
+- `LibraryMigrationService`: pre-upgrade backup, upgrade of a copy with `NSMigrationManager`, a row-for-row comparison of the original and the copy, then the restore swap (D-017). Interruption before install leaves the original and the staging is removed. Unknown files are refused and left unchanged.
+- The embedded fixture `V1LibraryFixture` is a real version-1 store (two folders, three notes, one trashed, Unicode text). It was written by the version-1 model before version 2 existed.
+- Restores migrate a staged version-1 backup before validating it.
+- Tests (`MigrationTests`, 4): the fixture opens upgraded with IDs, text, revisions, folders, and Recently Deleted unchanged; an interrupted upgrade leaves the original, and a retry succeeds; an unknown file is refused unchanged; a current library is not upgraded or backed up.
+
+### 02-02 — Pinning and sorting
+
+- `setNotePinned` changes the pin and revision, not `modifiedAt` (D-018). Stale revisions are rejected.
+- Ordering: pinned first, then Date Modified, Date Created, or Title, then UUID string. Title sorting uses `localizedStandardCompare`, so accented and case variants sort naturally.
+- The sort choice is stored in `UserDefaults`. Re-sorting does not change drafts or the selection.
+- UI: Pin/Unpin in the row menu, Shift-Cmd-P, a pin icon on pinned rows, a Sort menu in the list toolbar, and a Sort Notes By menu.
+- Tests (`OrganizationTests`): pin persists and changes only the revision; stale pins are rejected; pinned-first ordering; each sort order; stable tie-breaking; sort and pin survive relaunch; re-sorting keeps unsaved text and the selection; a pin is refused while saves fail.
+
+### 02-03 — Folder removal and permanent deletion
+
+- `deleteFolder` moves active and trashed notes to Notes in the same transaction, then removes the folder. Moved notes get a new revision, and active notes get a new `modifiedAt`. The default folder cannot be removed.
+- `permanentlyDeleteNote` removes only a trashed note with a matching revision. `permanentlyDeleteNotes` and `emptyRecentlyDeleted` take a `preDeletion` backup first, and cancel if it fails (D-019).
+- UI: "Delete Folder…" in the folder menu with a confirmation; "Delete Permanently" and "Empty Recently Deleted" in the trash toolbar, each with a confirmation.
+- Tests (`OrganizationTests`): folder removal keeps active and trashed notes, and they survive reopen; the default folder cannot be removed; permanent deletion needs a trashed note; deleting one note leaves the others; a backup is taken first; deletion is cancelled when the backup fails, and works once it succeeds; Empty Recently Deleted removes only trashed notes; removing the selected folder returns to All Notes.
+
+### 02-04 — Polish and regression (partial)
+
+- Settings window (Cmd-comma): sort order, last backup, Back Up Now, Manage Backups, and privacy text.
+- Performance on 10,000 synthetic notes (`LargeLibraryPerformanceTests`, one run, this Mac): library load 0.06 s; re-sort 0.006 s; search 0.24 s including the 200 ms debounce. All are inside the provisional limits in the plan.
+- Full suite passes: all unit, integration, and UI tests, including the migration, organization, and Stage 1 tests.
+- **Owner check:** keyboard and VoiceOver passes on the new Stage 2 controls (Sort menu, pin shortcut, Settings window, folder and permanent-deletion dialogs) reported passed. No automated UI test covers them yet.
+- **Not yet recorded:** Settings window appearance in light and dark mode.

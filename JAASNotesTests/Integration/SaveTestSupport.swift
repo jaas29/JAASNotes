@@ -139,6 +139,21 @@ actor FaultyNoteStore: NoteStore {
         try await base.deletedNotes()
     }
 
+    func setNotePinned(id: UUID, expectedRevision: Int64, isPinned: Bool) async throws -> NoteSnapshot {
+        try failIfInjected()
+        return try await base.setNotePinned(id: id, expectedRevision: expectedRevision, isPinned: isPinned)
+    }
+
+    func deleteFolder(id: UUID) async throws {
+        try failIfInjected()
+        try await base.deleteFolder(id: id)
+    }
+
+    func permanentlyDeleteNote(id: UUID, expectedRevision: Int64) async throws {
+        try failIfInjected()
+        try await base.permanentlyDeleteNote(id: id, expectedRevision: expectedRevision)
+    }
+
     private func failIfInjected() throws {
         guard structuralFailuresRemaining > 0 else { return }
         structuralFailuresRemaining -= 1

@@ -42,6 +42,11 @@
 		1B0D186B61EADC93B62D1B3B /* LibraryRestoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1872D44C204FB7627DDE0365 /* LibraryRestoreService.swift */; };
 		6531DCE75B072C818983F4A2 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB09BAA2E08033D219C04D2 /* StoreRecoveryView.swift */; };
 		A8FC89A3F28786ACCF5CB1DD /* BackupRestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A72866CAEE5B966281E44BD2 /* BackupRestoreTests.swift */; };
+		8CB31C27785143C60DC3329A /* MigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D253BE1B7C289759F8A62D05 /* MigrationTests.swift */; };
+		5C3ED0658BE2227F3E175DD6 /* V1LibraryFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF3C5944ACF2D526BA57C30B /* V1LibraryFixture.swift */; };
+		13C91241A05E23A3CEC5EF67 /* LibraryMigrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1CD549CC400B1585C84BB5 /* LibraryMigrationService.swift */; };
+		412E13B08FC4943631084C29 /* OrganizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746659D658C8FEE87EB8BE1D /* OrganizationTests.swift */; };
+		85D3D904B3E4CF11EF0A3042 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F02F5F5C6A33AB2D897E3A9F /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +108,11 @@
 		1872D44C204FB7627DDE0365 /* LibraryRestoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryRestoreService.swift; sourceTree = "<group>"; };
 		0AB09BAA2E08033D219C04D2 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
 		A72866CAEE5B966281E44BD2 /* BackupRestoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRestoreTests.swift; sourceTree = "<group>"; };
+		D253BE1B7C289759F8A62D05 /* MigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationTests.swift; sourceTree = "<group>"; };
+		EF3C5944ACF2D526BA57C30B /* V1LibraryFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V1LibraryFixture.swift; sourceTree = "<group>"; };
+		CE1CD549CC400B1585C84BB5 /* LibraryMigrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryMigrationService.swift; sourceTree = "<group>"; };
+		746659D658C8FEE87EB8BE1D /* OrganizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrganizationTests.swift; sourceTree = "<group>"; };
+		F02F5F5C6A33AB2D897E3A9F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -180,6 +190,7 @@
 			children = (
 				60BE48580D0D1712EF90656D /* LibraryModel.swift */,
 				A1000000000000000000F012 /* LibraryShellView.swift */,
+				F02F5F5C6A33AB2D897E3A9F /* SettingsView.swift */,
 			);
 			path = Library;
 			sourceTree = "<group>";
@@ -320,6 +331,7 @@
 				DBEE966CDA534F28BCF1A524 /* RecoveryCopy.swift */,
 				FABEC6EF5073DBD7324A806D /* LibraryBackupService.swift */,
 				1872D44C204FB7627DDE0365 /* LibraryRestoreService.swift */,
+				CE1CD549CC400B1585C84BB5 /* LibraryMigrationService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -340,6 +352,9 @@
 				15ABDD6D41D16D289A0520FE /* AutosaveTests.swift */,
 				915F4B4559A0310C36F5A41F /* AutosaveScheduleTests.swift */,
 				A72866CAEE5B966281E44BD2 /* BackupRestoreTests.swift */,
+				D253BE1B7C289759F8A62D05 /* MigrationTests.swift */,
+				EF3C5944ACF2D526BA57C30B /* V1LibraryFixture.swift */,
+				746659D658C8FEE87EB8BE1D /* OrganizationTests.swift */,
 			);
 			path = Integration;
 			sourceTree = "<group>";
@@ -482,6 +497,8 @@
 				E2DF576F7239DA1B8349D4BB /* LibraryBackupService.swift in Sources */,
 				1B0D186B61EADC93B62D1B3B /* LibraryRestoreService.swift in Sources */,
 				6531DCE75B072C818983F4A2 /* StoreRecoveryView.swift in Sources */,
+				13C91241A05E23A3CEC5EF67 /* LibraryMigrationService.swift in Sources */,
+				85D3D904B3E4CF11EF0A3042 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -500,6 +517,9 @@
 				DBA1C12C0A25EB0CEF8DE83A /* LibraryRepositoryTests.swift in Sources */,
 				A1000000000000000000B013 /* AppConfigurationTests.swift in Sources */,
 				A8FC89A3F28786ACCF5CB1DD /* BackupRestoreTests.swift in Sources */,
+				8CB31C27785143C60DC3329A /* MigrationTests.swift in Sources */,
+				5C3ED0658BE2227F3E175DD6 /* V1LibraryFixture.swift in Sources */,
+				412E13B08FC4943631084C29 /* OrganizationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -54,6 +54,8 @@ final class LibraryModel {
     /// Quiet time after the last search keystroke before the store is queried.
     static let searchDebounceInterval: Duration = .milliseconds(200)
 
+    private static let sortOrderKey = "org.jaasnotes.noteSortOrder"
+
     private(set) var phase: Phase = .loading
     private(set) var folders: [FolderSnapshot] = []
     private(set) var notes: [NoteSnapshot] = []
@@ -62,6 +64,14 @@ final class LibraryModel {
     private(set) var drafts: [UUID: Draft] = [:]
     private(set) var operationError: String?
     private(set) var saveFailures: [UUID: String] = [:]
+
+    /// The note list order. Stored in preferences, not in the library. Changing it re-orders rows but never drafts.
+    var sortOrder: NoteSortOrder {
+        didSet {
+            defaults.set(sortOrder.rawValue, forKey: Self.sortOrderKey)
+            applyListOrder()
+        }
+    }
 
     var sidebarSelection: SidebarSelection? = .allNotes
     var selectedNoteID: UUID?
@@ -107,6 +117,7 @@ final class LibraryModel {
     private let clock: Clock
     private let sleep: Sleeper
     private let searchSleep: Sleeper
+    private let defaults: UserDefaults
     /// Bumped by every search edit or save. A search result is applied only if its generation is still current.
     private var searchGeneration = 0
 
@@ -120,11 +131,14 @@ final class LibraryModel {
     init(
         clock: @escaping Clock = { Date() },
         sleep: @escaping Sleeper = { try await Task.sleep(for: $0) },
-        searchSleep: @escaping Sleeper = { try await Task.sleep(for: $0) }
+        searchSleep: @escaping Sleeper = { try await Task.sleep(for: $0) },
+        defaults: UserDefaults = .standard
     ) {
         self.clock = clock
         self.sleep = sleep
         self.searchSleep = searchSleep
+        self.defaults = defaults
+        self.sortOrder = NoteSortOrder(rawValue: defaults.string(forKey: Self.sortOrderKey) ?? "") ?? .modified
     }
 
     // MARK: - Reading state
@@ -661,10 +675,91 @@ final class LibraryModel {
         }
     }
 
-    /// Re-applies the list order. Called only when focus leaves a note, never while the note is being typed in,
-    /// so rows do not jump under the cursor.
+    /// Re-applies the list order. Called when focus leaves a note, when the sort changes, and after structural
+    /// changes, never while a note is being typed in, so rows do not jump under the cursor.
     private func applyListOrder() {
-        notes.sort(by: NoteSnapshot.newestFirst)
+        let order = sortOrder
+        notes.sort { NoteSnapshot.listOrder($0, $1, by: order) }
+    }
+
+    /// Removes a user folder. Its notes move to Notes, which is the only effect: nothing is deleted. Pending text is saved first.
+    @discardableResult
+    func deleteFolder(_ folderID: UUID) async -> Bool {
+        guard let store = activeStore else { return false }
+        guard await flushPendingDrafts() else {
+            operationError = "The folder could not be removed because unsaved changes could not be saved."
+            return false
+        }
+        do {
+            try await store.deleteFolder(id: folderID)
+            if sidebarSelection == .folder(folderID) {
+                sidebarSelection = .allNotes
+            }
+            try await refresh()
+            dropSelectionOutsideVisibleNotes()
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
+    /// Permanently removes trashed notes. A backup is made first. If the backup cannot be made, nothing is deleted.
+    @discardableResult
+    func permanentlyDeleteNotes(_ noteIDs: [UUID]) async -> Bool {
+        guard !noteIDs.isEmpty else { return false }
+        guard await flushPendingDrafts() else {
+            operationError = "Nothing was deleted because unsaved changes could not be saved."
+            return false
+        }
+        guard await takeBackup(kind: .preDeletion) else {
+            operationError = "Nothing was deleted because the backup could not be made. \(backupMessage ?? "")"
+            return false
+        }
+        // The backup reopens the store, so fetch the current one now.
+        guard let store = activeStore else { return false }
+        do {
+            for noteID in noteIDs {
+                guard let note = deletedNotes.first(where: { $0.id == noteID }) else { continue }
+                try await store.permanentlyDeleteNote(id: noteID, expectedRevision: note.revision)
+            }
+            try await refresh()
+            dropSelectionOutsideVisibleNotes()
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            try? await refresh()
+            return false
+        }
+    }
+
+    /// Empties Recently Deleted after a backup.
+    @discardableResult
+    func emptyRecentlyDeleted() async -> Bool {
+        await permanentlyDeleteNotes(deletedNotes.map(\.id))
+    }
+
+    /// Pins or unpins a note. Pending text is saved first, so the revision the store checks is current.
+    @discardableResult
+    func setPinned(_ noteID: UUID, _ isPinned: Bool) async -> Bool {
+        guard let store = activeStore else { return false }
+        guard await flushPendingDrafts() else {
+            operationError = "The note's pin could not be changed because its unsaved changes could not be saved."
+            return false
+        }
+        guard let note = notes.first(where: { $0.id == noteID }) else {
+            operationError = Self.message(for: LibraryError.noteNotFound(noteID))
+            return false
+        }
+        do {
+            let updated = try await store.setNotePinned(id: noteID, expectedRevision: note.revision, isPinned: isPinned)
+            replaceNote(updated)
+            applyListOrder()
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
     }
 
     func clearOperationError() {
@@ -685,8 +780,9 @@ final class LibraryModel {
     func load(at location: LibraryLocation) async {
         self.location = location
         do {
-            // Finish or undo a restore that was interrupted before the library opens.
+            // Finish or undo a restore that was interrupted before the library opens, then upgrade an older library.
             try await LibraryRestoreService.recoverInterruptedRestore(at: location)
+            try await LibraryMigrationService.migrateIfNeeded(location)
             let container = try await CoreDataStack.openContainer(at: location)
             self.container = container
             await load(store: makeStore(for: container))
@@ -860,6 +956,7 @@ final class LibraryModel {
         folders = try await store.folders()
         notes = try await store.activeNotes(inFolder: nil)
         deletedNotes = try await store.deletedNotes()
+        applyListOrder()
     }
 
     /// Debug builds can open a named library inside the app's own sandbox temporary folder. A sandboxed app

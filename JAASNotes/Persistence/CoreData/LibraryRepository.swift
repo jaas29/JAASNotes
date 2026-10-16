@@ -5,7 +5,7 @@ import Foundation
 /// is saved to the persistent store before it returns. Callers receive value snapshots only.
 actor LibraryRepository: NoteStore {
     static let defaultFolderName = "Notes"
-    static let currentFormatVersion = 1
+    static let currentFormatVersion = 2
 
     private let context: NSManagedObjectContext
     private let now: @Sendable () -> Date
@@ -184,6 +184,7 @@ actor LibraryRepository: NoteStore {
             note.modifiedAt = now
             note.deletedAt = nil
             note.revision = 1
+            note.isPinned = false
             note.folder = folder
             return try Self.snapshot(of: note)
         }
@@ -257,6 +258,68 @@ actor LibraryRepository: NoteStore {
             guard note.deletedAt != nil else { throw LibraryError.noteNotDeleted(id) }
             note.deletedAt = nil
             note.revision += 1
+            return try Self.snapshot(of: note)
+        }
+    }
+
+    /// Moves every note in the folder (active and trashed) to the default Notes folder, then removes the folder. Moved
+    /// notes count as changed: their revision increases and, for active notes, `modifiedAt` is updated.
+    func deleteFolder(id: UUID) async throws {
+        try await write { context, now in
+            guard let folder = try Self.fetch(
+                FolderRecord.self,
+                entity: "Folder",
+                in: context,
+                predicate: NSPredicate(format: "id == %@", id as NSUUID)
+            ).first else {
+                throw LibraryError.folderNotFound(id)
+            }
+            guard !folder.isDefault else { throw LibraryError.defaultFolderIsFixed }
+            guard let defaultFolder = try Self.fetch(
+                FolderRecord.self,
+                entity: "Folder",
+                in: context,
+                predicate: NSPredicate(format: "isDefault == YES")
+            ).first else {
+                throw LibraryError.libraryInconsistent("The default Notes folder is missing.")
+            }
+
+            let notes = try Self.fetch(
+                NoteRecord.self,
+                entity: "Note",
+                in: context,
+                predicate: NSPredicate(format: "folder.id == %@", id as NSUUID)
+            )
+            for note in notes {
+                note.folder = defaultFolder
+                note.revision += 1
+                if note.deletedAt == nil {
+                    note.modifiedAt = now
+                }
+            }
+            context.delete(folder)
+        }
+    }
+
+    /// Removes a note that is in Recently Deleted. Active notes are refused, so a live note can never be lost this way.
+    func permanentlyDeleteNote(id: UUID, expectedRevision: Int64) async throws {
+        try await write { context, _ in
+            let note = try Self.fetchNote(id: id, in: context)
+            guard note.revision == expectedRevision else { throw LibraryError.revisionConflict(id) }
+            guard note.deletedAt != nil else { throw LibraryError.noteNotDeleted(id) }
+            context.delete(note)
+        }
+    }
+
+    /// Pins or unpins a note. Only the pin flag and the revision change; content and `modifiedAt` do not.
+    func setNotePinned(id: UUID, expectedRevision: Int64, isPinned: Bool) async throws -> NoteSnapshot {
+        try await write { context, _ in
+            let note = try Self.fetchNote(id: id, in: context)
+            guard note.revision == expectedRevision else { throw LibraryError.revisionConflict(id) }
+            if note.isPinned != isPinned {
+                note.isPinned = isPinned
+                note.revision += 1
+            }
             return try Self.snapshot(of: note)
         }
     }
@@ -375,7 +438,8 @@ actor LibraryRepository: NoteStore {
             createdAt: record.createdAt,
             modifiedAt: record.modifiedAt,
             deletedAt: record.deletedAt,
-            revision: record.revision
+            revision: record.revision,
+            isPinned: record.isPinned
         )
     }
 }

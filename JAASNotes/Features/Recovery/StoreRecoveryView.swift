@@ -147,6 +147,8 @@ struct BackupsSheet: View {
         case .automatic: "Automatic"
         case .manual: "Manual"
         case .preRestore: "Before restore"
+        case .preMigration: "Before upgrade"
+        case .preDeletion: "Before permanent deletion"
         }
     }
 }

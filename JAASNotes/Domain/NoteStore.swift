@@ -14,6 +14,12 @@ protocol NoteStore: Sendable {
     /// Returns a trashed note to active notes in the folder it was deleted from.
     func restoreNote(id: UUID, expectedRevision: Int64) async throws -> NoteSnapshot
     func deletedNotes() async throws -> [NoteSnapshot]
+    /// Removes a user folder. Its active and trashed notes move to the default folder first, in the same transaction.
+    func deleteFolder(id: UUID) async throws
+    /// Removes a note that is already in Recently Deleted. Nothing else is removed.
+    func permanentlyDeleteNote(id: UUID, expectedRevision: Int64) async throws
+    /// Pinning is not a content edit: it bumps the revision but keeps `modifiedAt`.
+    func setNotePinned(id: UUID, expectedRevision: Int64, isPinned: Bool) async throws -> NoteSnapshot
     func createFolder(named name: String) async throws -> FolderSnapshot
     func renameFolder(id: UUID, to name: String) async throws -> FolderSnapshot
     func moveNote(id: UUID, expectedRevision: Int64, toFolderID folderID: UUID) async throws -> NoteSnapshot

@@ -5,6 +5,20 @@ import SwiftUI
 struct NoteListView: View {
     @Bindable var model: LibraryModel
     @FocusState private var isSearchFocused: Bool
+    @State private var pendingPermanentDelete: PermanentDelete?
+
+    /// What the permanent-delete confirmation is about to remove.
+    enum PermanentDelete: Identifiable {
+        case selected(UUID)
+        case emptyTrash
+
+        var id: String {
+            switch self {
+            case .selected(let noteID): "selected-\(noteID.uuidString)"
+            case .emptyTrash: "empty"
+            }
+        }
+    }
 
     var body: some View {
         List(selection: Binding(
@@ -17,11 +31,16 @@ struct NoteListView: View {
                     title: draft.title,
                     bodyPreview: draft.bodyPlainText,
                     date: note.deletedAt ?? note.modifiedAt,
-                    dateLabel: note.deletedAt == nil ? nil : "Deleted"
+                    dateLabel: note.deletedAt == nil ? nil : "Deleted",
+                    isPinned: note.isPinned
                 )
                 .tag(note.id)
                 .contextMenu {
                     if note.deletedAt == nil {
+                        Button(note.isPinned ? "Unpin" : "Pin") {
+                            Task { await model.setPinned(note.id, !note.isPinned) }
+                        }
+                        Divider()
                         moveMenu(for: note)
                         Divider()
                         Button("Move to Recently Deleted", role: .destructive) {
@@ -39,6 +58,24 @@ struct NoteListView: View {
             if model.listedNotes.isEmpty {
                 emptyState
             }
+        }
+        .confirmationDialog(
+            permanentDeleteTitle,
+            isPresented: Binding(get: { pendingPermanentDelete != nil }, set: { if !$0 { pendingPermanentDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingPermanentDelete
+        ) { request in
+            Button("Delete Permanently", role: .destructive) {
+                switch request {
+                case .selected(let noteID):
+                    Task { await model.permanentlyDeleteNotes([noteID]) }
+                case .emptyTrash:
+                    Task { await model.emptyRecentlyDeleted() }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("This cannot be undone. A backup is made first. If the backup fails, nothing is deleted.")
         }
         .searchable(
             text: Binding(get: { model.searchText }, set: { model.setSearchText($0) }),
@@ -70,6 +107,20 @@ struct NoteListView: View {
             }
             ToolbarItem {
                 Menu {
+                    Picker("Sort By", selection: Binding(get: { model.sortOrder }, set: { model.sortOrder = $0 })) {
+                        ForEach(NoteSortOrder.allCases, id: \.self) { order in
+                            Text(order.title).tag(order)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+                .help("Change the order of notes. Pinned notes stay first.")
+                .accessibilityIdentifier("sortMenu")
+            }
+            ToolbarItem {
+                Menu {
                     if let note = model.selectedNote {
                         moveMenu(for: note)
                     }
@@ -93,6 +144,26 @@ struct NoteListView: View {
                     .help("Restore the selected note")
                     .disabled(model.selectedNote == nil)
                     .accessibilityIdentifier("toolbarRestore")
+
+                    Button {
+                        if let id = model.selectedNoteID {
+                            pendingPermanentDelete = .selected(id)
+                        }
+                    } label: {
+                        Label("Delete Permanently", systemImage: "trash.slash")
+                    }
+                    .help("Delete the selected note permanently")
+                    .disabled(model.selectedNote == nil)
+                    .accessibilityIdentifier("toolbarDeletePermanently")
+
+                    Button {
+                        pendingPermanentDelete = .emptyTrash
+                    } label: {
+                        Label("Empty Recently Deleted", systemImage: "trash")
+                    }
+                    .help("Permanently delete every note in Recently Deleted")
+                    .disabled(model.deletedNotes.isEmpty)
+                    .accessibilityIdentifier("emptyRecentlyDeleted")
                 } else {
                     Button {
                         if let id = model.selectedNoteID {
@@ -192,17 +263,35 @@ enum SearchFieldFocus {
     }
 }
 
+extension NoteListView {
+    fileprivate var permanentDeleteTitle: String {
+        switch pendingPermanentDelete {
+        case .selected: "Delete this note permanently?"
+        case .emptyTrash: "Empty Recently Deleted?"
+        case nil: ""
+        }
+    }
+}
+
 private struct NoteRow: View {
     let title: String
     let bodyPreview: String
     let date: Date
     let dateLabel: String?
+    let isPinned: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title.isEmpty ? "Untitled Note" : title)
-                .font(.headline)
-                .lineLimit(1)
+            HStack(spacing: 4) {
+                if isPinned {
+                    Image(systemName: "pin.fill")
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Pinned")
+                }
+                Text(title.isEmpty ? "Untitled Note" : title)
+                    .font(.headline)
+                    .lineLimit(1)
+            }
             Text(bodyPreview)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

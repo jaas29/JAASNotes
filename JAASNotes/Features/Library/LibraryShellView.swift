@@ -7,6 +7,7 @@ struct LibraryShellView: View {
     @State private var presentSaveFailure = false
     @State private var folderSheet: FolderNameSheet.Mode?
     @State private var isShowingBackups = false
+    @State private var folderToDelete: FolderSnapshot?
 
     var body: some View {
         Group {
@@ -101,6 +102,10 @@ struct LibraryShellView: View {
                                     folderSheet = .rename(folder)
                                 }
                                 .disabled(folder.isDefault)
+                                Button("Delete Folder…", role: .destructive) {
+                                    folderToDelete = folder
+                                }
+                                .disabled(folder.isDefault)
                             }
                     }
                 }
@@ -148,6 +153,19 @@ struct LibraryShellView: View {
         }
         .sheet(isPresented: $isShowingBackups) {
             BackupsSheet(model: model)
+        }
+        .confirmationDialog(
+            "Delete this folder?",
+            isPresented: Binding(get: { folderToDelete != nil }, set: { if !$0 { folderToDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: folderToDelete
+        ) { folder in
+            Button("Delete Folder", role: .destructive) {
+                Task { await model.deleteFolder(folder.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { folder in
+            Text("The notes in “\(folder.name)”, including those in Recently Deleted, move to Notes. No note is erased.")
         }
     }
 }

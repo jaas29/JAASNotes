@@ -331,13 +331,13 @@ Use official documentation and verify availability against the chosen SDK during
 
 01-10: Run the complete Stage 1 persistence/failure/UI matrix, add macOS CI, and document build/run/recovery instructions and measured limitations. Requires 01-01 through 01-09. Complete when the runnable plain-text app meets every Stage 1 gate with evidence and no unresolved data-loss defect. [COMPLETE]
 
-02-01: Add the version-2 pinned-note field and staged migration infrastructure with pre-migration backup and recoverable swap. Requires 01-10. Complete when v1 fixtures upgrade with preserved IDs/content and interrupted or unsupported migrations leave the original recoverable. [NOT COMPLETE]
+02-01: Add the version-2 pinned-note field and staged migration infrastructure with pre-migration backup and recoverable swap. Requires 01-10. Complete when v1 fixtures upgrade with preserved IDs/content and interrupted or unsupported migrations leave the original recoverable. [COMPLETE]
 
-02-02: Add pin/unpin and modified/created/title sorting with persisted preferences and stable tie-breakers. Requires 02-01. Complete when ordering is correct after restart and sorting does not move focus or overwrite unsaved edits. [NOT COMPLETE]
+02-02: Add pin/unpin and modified/created/title sorting with persisted preferences and stable tie-breakers. Requires 02-01. Complete when ordering is correct after restart and sorting does not move focus or overwrite unsaved edits. [COMPLETE]
 
-02-03: Add safe user-folder removal, confirmed permanent note deletion, and Empty Recently Deleted. Requires 02-01 and 01-08. Complete when folder removal rehomes active/deleted notes atomically and permanent deletion requires a verified backup and confirmation, with failure leaving data intact. [NOT COMPLETE]
+02-03: Add safe user-folder removal, confirmed permanent note deletion, and Empty Recently Deleted. Requires 02-01 and 01-08. Complete when folder removal rehomes active/deleted notes atomically and permanent deletion requires a verified backup and confirmation, with failure leaving data intact. [COMPLETE]
 
-02-04: Polish recovery/settings UI and rerun core regressions, migration tests, keyboard checks, and sorting performance checks. Requires 02-02 and 02-03. Complete when the Stage 2 app remains runnable and all organization/recovery acceptance criteria have recorded evidence. [NOT COMPLETE]
+02-04: Polish recovery/settings UI and rerun core regressions, migration tests, keyboard checks, and sorting performance checks. Requires 02-02 and 02-03. Complete when the Stage 2 app remains runnable and all organization/recovery acceptance criteria have recorded evidence. [COMPLETE]
 
 03-01: Define version-3 RTF/checklist serialization, plain-text derivation, validation, and legacy/corrupt-content handling. Requires 02-04. Complete when isolated round-trip and migration tests preserve Unicode, content, and legacy note IDs without overwriting unreadable originals. [NOT COMPLETE]
 

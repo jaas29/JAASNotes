@@ -30,5 +30,7 @@ final class NoteRecord: NSManagedObject {
     @NSManaged var modifiedAt: Date
     @NSManaged var deletedAt: Date?
     @NSManaged var revision: Int64
+    /// Added in version 2. Existing version-1 notes migrate with `false`.
+    @NSManaged var isPinned: Bool
     @NSManaged var folder: FolderRecord?
 }

@@ -7,6 +7,9 @@ enum BackupKind: String, Codable, Equatable, Sendable {
     case automatic
     case manual
     case preRestore
+    case preMigration
+    /// Taken before permanent deletion. Deletion is refused if this backup cannot be made.
+    case preDeletion
 }
 
 struct BackupCounts: Codable, Equatable, Sendable {
@@ -115,11 +118,13 @@ enum LibraryBackupService {
     // MARK: - Creating snapshots
 
     /// Copies a closed library into a validated backup package. The caller must have closed the live store first.
+    /// `legacyModel` is set only for the pre-upgrade snapshot of a version-1 library, which the current model cannot open.
     static func createSnapshot(
         of location: LibraryLocation,
         kind: BackupKind,
         now: Date,
-        lastChangeAt: Date?
+        lastChangeAt: Date?,
+        legacyModel: NSManagedObjectModel? = nil
     ) async throws -> BackupSummary {
         let fileManager = FileManager.default
         let id = UUID()
@@ -129,7 +134,15 @@ enum LibraryBackupService {
         do {
             try fileManager.createDirectory(at: stagedLibrary, withIntermediateDirectories: true)
             try copyStoreFiles(from: location.libraryDirectoryURL, to: stagedLibrary)
-            let info = try await validate(LibraryLocation(rootURL: stagedPackage))
+            let info: (libraryID: UUID, formatVersion: Int, counts: BackupCounts)
+            if let legacyModel {
+                info = try LibraryMigrationService.describe(
+                    stagedLibrary.appending(path: "Store.sqlite", directoryHint: .notDirectory),
+                    model: legacyModel
+                )
+            } else {
+                info = try await validate(LibraryLocation(rootURL: stagedPackage))
+            }
             // Checksum the files only after validation. Opening a store can update its -shm and -wal companions.
             // Once checksummed, nothing else opens these files; restores copy them and check the copy.
             let checksums = try checksumStoreFiles(in: stagedLibrary)

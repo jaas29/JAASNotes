@@ -106,3 +106,25 @@ Architecture choices and approved changes. Entries are added as decisions are ma
 - **Decision:** an automatic backup runs at most once every 24 hours, and only when a note or folder was modified or trashed after the newest automatic backup. Repository and model share one clock, so the comparison is valid.
 - **Why:** the plan requires "at most one per day after a change". Comparing dates needs no extra persisted state.
 - **Consequence:** backups made by the app are not tracked by a separate change flag.
+
+## D-016 — Version 2 adds `isPinned`; the version-1 model stays untouched
+
+- **Decision:** `JAASNotes 2.xcdatamodel` is a new model version with `Note.isPinned` (default false). `JAASNotes.xcdatamodel` is not edited. The current version is set in `.xccurrentversion`.
+- **Also changed in v2:** `Note.folder` uses the Nullify delete rule. The v1 Deny rule blocked deleting any note, because Core Data applies a relationship's delete rule to the object being deleted. The folder's own `notes` relationship still denies deleting a folder that has notes, so folder removal first moves its notes to Notes.
+- **Consequence:** version 2 has not been released, so correcting its rules is allowed. A released version would need a new model version instead.
+
+## D-017 — Upgrades are copied, compared, and installed through the restore swap
+
+- **Decision:** before an upgrade the original is backed up as `preMigration`. The upgrade runs on a copy of the store with `NSMigrationManager`. The upgraded copy's notes and folders must match the original exactly, checked by a read-only comparison of both stores. Only then is the copy installed through the same transaction-marker swap that restores use.
+- **Why:** the plan forbids in-place migration of the only copy and requires recoverable failure. Reusing the swap means one recovery path covers restores and upgrades.
+- **Consequence:** an upgrade needs free disk space for the backup and the copy. Downgrades are not supported.
+
+## D-018 — Pinning bumps the revision, not `modifiedAt`
+
+- **Decision:** pinning and unpinning change the pin flag and revision. They do not change `modifiedAt`, because they are not content edits.
+- **Why:** the autosave conflict check relies on the revision. Keeping `modifiedAt` stable means pinning does not reorder a note's "modified" position.
+
+## D-019 — Permanent deletion needs a successful backup and a confirmation
+
+- **Decision:** permanent deletion and Empty Recently Deleted take a `preDeletion` backup first. If the backup fails, nothing is deleted and the message says so. The repository refuses to delete a note that is not in Recently Deleted. Folder removal moves notes to Notes and does not require a backup, because nothing is erased.
+- **Why:** the plan requires a verified backup before permanent deletion.
