@@ -29,6 +29,15 @@
 		17DB25874A738FF6597B9A74 /* LibraryModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B160AEA8C1625B5063D087C /* LibraryModelTests.swift */; };
 		FEB596C180C1C72C7FD22466 /* NoteEditingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 510BA637978220A7E0830F66 /* NoteEditingUITests.swift */; };
 		E766E47C0E5EB9769D46AA1D /* UITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A5FA96DEE066897D518F56E /* UITestSupport.swift */; };
+		BA878CE1BCF43FC1B505A7C5 /* NoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D7DA8802D83357383E3BA0 /* NoteStore.swift */; };
+		42476FC79592BB0FCC7FEB4F /* RecoveryCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEE966CDA534F28BCF1A524 /* RecoveryCopy.swift */; };
+		6C560C4F71071E8551B17A04 /* RecoveryPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B89B2262D87C9BBB2DDCCE /* RecoveryPanels.swift */; };
+		4A832906A69098E79850857D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D206E73D7ED2A17C92035FC0 /* AppDelegate.swift */; };
+		3E2E55DD2D39960A2340162F /* SaveTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A2C5FBE83ECDD9929F699D0 /* SaveTestSupport.swift */; };
+		84A117A078B05F194BBCA19F /* AutosaveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15ABDD6D41D16D289A0520FE /* AutosaveTests.swift */; };
+		EFA9B6C25877458C8CBF9CCE /* AutosaveScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915F4B4559A0310C36F5A41F /* AutosaveScheduleTests.swift */; };
+		639A3497AD68A63B7870F226 /* RecoveryCopyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF86759D21668EDC601B0261 /* RecoveryCopyTests.swift */; };
+		3B7ABA0FC655EAC12A303707 /* DebugSaveFailureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CF45C882DC4DD84057EA6B1 /* DebugSaveFailureStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,6 +86,15 @@
 		5B160AEA8C1625B5063D087C /* LibraryModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryModelTests.swift; sourceTree = "<group>"; };
 		510BA637978220A7E0830F66 /* NoteEditingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteEditingUITests.swift; sourceTree = "<group>"; };
 		5A5FA96DEE066897D518F56E /* UITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestSupport.swift; sourceTree = "<group>"; };
+		19D7DA8802D83357383E3BA0 /* NoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteStore.swift; sourceTree = "<group>"; };
+		DBEE966CDA534F28BCF1A524 /* RecoveryCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCopy.swift; sourceTree = "<group>"; };
+		D5B89B2262D87C9BBB2DDCCE /* RecoveryPanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPanels.swift; sourceTree = "<group>"; };
+		D206E73D7ED2A17C92035FC0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		5A2C5FBE83ECDD9929F699D0 /* SaveTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveTestSupport.swift; sourceTree = "<group>"; };
+		15ABDD6D41D16D289A0520FE /* AutosaveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutosaveTests.swift; sourceTree = "<group>"; };
+		915F4B4559A0310C36F5A41F /* AutosaveScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutosaveScheduleTests.swift; sourceTree = "<group>"; };
+		FF86759D21668EDC601B0261 /* RecoveryCopyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCopyTests.swift; sourceTree = "<group>"; };
+		9CF45C882DC4DD84057EA6B1 /* DebugSaveFailureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSaveFailureStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,6 +135,9 @@
 		A1000000000000000000E004 /* JAASNotes */ = {
 			isa = PBXGroup;
 			children = (
+				5FECB87111067E6859C242D0 /* Persistence */,
+				704C80D06CBC3E231E1E6827 /* Domain */,
+				21FD870E86E05B4814A7D356 /* Services */,
 				ECD451319AE08B060BCF2795 /* Domain */,
 				9AAE47446B102AB1BF59982D /* Persistence */,
 				A1000000000000000000E005 /* App */,
@@ -129,6 +150,7 @@
 		A1000000000000000000E005 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				D206E73D7ED2A17C92035FC0 /* AppDelegate.swift */,
 				A1000000000000000000F010 /* JAASNotesApp.swift */,
 			);
 			path = App;
@@ -137,6 +159,7 @@
 		A1000000000000000000E006 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				D282933BD85AF2D3691E0D91 /* Recovery */,
 				533489503275CC3D59CA1429 /* NoteList */,
 				16E9387E72E5BA12B3093AA3 /* Editor */,
 				A1000000000000000000E007 /* Library */,
@@ -164,6 +187,7 @@
 		A1000000000000000000E009 /* JAASNotesTests */ = {
 			isa = PBXGroup;
 			children = (
+				CFE4AC878D5E20BB058F5E7A /* Integration */,
 				10B5BC0A1618563CE668082F /* Integration */,
 				6B27C01255C966CA6BE33D96 /* Integration */,
 				A1000000000000000000E00A /* Unit */,
@@ -174,6 +198,7 @@
 		A1000000000000000000E00A /* Unit */ = {
 			isa = PBXGroup;
 			children = (
+				FF86759D21668EDC601B0261 /* RecoveryCopyTests.swift */,
 				F5B51BB6C52D24AD97889038 /* PlainTextEditorDelegateTests.swift */,
 				397D352BCBE4866AAEEA0001 /* FolderNameTests.swift */,
 				E310C65C92735F9CF7FE9371 /* LibraryLocationTests.swift */,
@@ -271,6 +296,56 @@
 				5B160AEA8C1625B5063D087C /* LibraryModelTests.swift */,
 			);
 			path = Integration;
+			sourceTree = "<group>";
+		};
+		704C80D06CBC3E231E1E6827 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				19D7DA8802D83357383E3BA0 /* NoteStore.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		21FD870E86E05B4814A7D356 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				DBEE966CDA534F28BCF1A524 /* RecoveryCopy.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		D282933BD85AF2D3691E0D91 /* Recovery */ = {
+			isa = PBXGroup;
+			children = (
+				D5B89B2262D87C9BBB2DDCCE /* RecoveryPanels.swift */,
+			);
+			path = Recovery;
+			sourceTree = "<group>";
+		};
+		CFE4AC878D5E20BB058F5E7A /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				5A2C5FBE83ECDD9929F699D0 /* SaveTestSupport.swift */,
+				15ABDD6D41D16D289A0520FE /* AutosaveTests.swift */,
+				915F4B4559A0310C36F5A41F /* AutosaveScheduleTests.swift */,
+			);
+			path = Integration;
+			sourceTree = "<group>";
+		};
+		5FECB87111067E6859C242D0 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				ADB057DFDDB3856177EE4D70 /* CoreData */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		ADB057DFDDB3856177EE4D70 /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				9CF45C882DC4DD84057EA6B1 /* DebugSaveFailureStore.swift */,
+			);
+			path = CoreData;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -374,6 +449,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B7ABA0FC655EAC12A303707 /* DebugSaveFailureStore.swift in Sources */,
+				BA878CE1BCF43FC1B505A7C5 /* NoteStore.swift in Sources */,
+				42476FC79592BB0FCC7FEB4F /* RecoveryCopy.swift in Sources */,
+				6C560C4F71071E8551B17A04 /* RecoveryPanels.swift in Sources */,
+				4A832906A69098E79850857D /* AppDelegate.swift in Sources */,
 				99B21342C91DAEE5076D2F51 /* LibraryModel.swift in Sources */,
 				4D1358E8305C05F938AD1D5C /* NoteListView.swift in Sources */,
 				FA7FED5C879B708D35E2B42E /* PlainTextEditor.swift in Sources */,
@@ -394,6 +474,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3E2E55DD2D39960A2340162F /* SaveTestSupport.swift in Sources */,
+				84A117A078B05F194BBCA19F /* AutosaveTests.swift in Sources */,
+				EFA9B6C25877458C8CBF9CCE /* AutosaveScheduleTests.swift in Sources */,
+				639A3497AD68A63B7870F226 /* RecoveryCopyTests.swift in Sources */,
 				402200CE29F9374946B54B3C /* PlainTextEditorDelegateTests.swift in Sources */,
 				17DB25874A738FF6597B9A74 /* LibraryModelTests.swift in Sources */,
 				B225DD64124A3EDB1DB79A1E /* FolderNameTests.swift in Sources */,

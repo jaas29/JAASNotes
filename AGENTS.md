@@ -317,7 +317,7 @@ Use official documentation and verify availability against the chosen SDK during
 
 01-03: Implement note creation and plain-text title/body editing with stable selection and NSTextView integration. Requires 01-02. Complete when multiple notes can be created and edited, Unicode/IME input and native text undo work, and switching selections retains drafts. [NOT COMPLETE]
 
-01-04: Implement revision-aware autosave, immediate save, navigation/close/quit flushing, status, retry, and recovery-copy export. Requires 01-03. Complete when latest edits survive normal restart and delayed/failed saves neither discard drafts nor falsely report Saved; failure can cancel Quit. [NOT COMPLETE]
+01-04: Implement revision-aware autosave, immediate save, navigation/close/quit flushing, status, retry, and recovery-copy export. Requires 01-03. Complete when latest edits survive normal restart and delayed/failed saves neither discard drafts nor falsely report Saved; failure can cancel Quit. [COMPLETE]
 
 01-05: Implement folder creation/rename, note moves, list previews/dates, stable default ordering, and empty states. Requires 01-04. Complete when these operations survive restart and invalid folder names or failed moves leave consistent data and selection. [NOT COMPLETE]
 

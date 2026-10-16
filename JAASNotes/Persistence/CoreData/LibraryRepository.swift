@@ -3,7 +3,7 @@ import Foundation
 
 /// The single writer for one library. Each mutation runs in one transaction on a private-queue context and
 /// is saved to the persistent store before it returns. Callers receive value snapshots only.
-actor LibraryRepository {
+actor LibraryRepository: NoteStore {
     static let defaultFolderName = "Notes"
     static let currentFormatVersion = 1
 
@@ -125,8 +125,36 @@ actor LibraryRepository {
         }
     }
 
+    /// Saves edited text only if the stored revision still matches `expectedRevision`, so a stale editor can never
+    /// overwrite newer data. Identical text is not a change: the revision and modification date stay the same.
+    func updateNote(id: UUID, expectedRevision: Int64, title: String, bodyPlainText: String) async throws -> NoteSnapshot {
+        try await write { context, now in
+            guard let note = try Self.fetch(
+                NoteRecord.self,
+                entity: "Note",
+                in: context,
+                predicate: NSPredicate(format: "id == %@", id as NSUUID)
+            ).first else {
+                throw LibraryError.noteNotFound(id)
+            }
+            guard note.revision == expectedRevision else {
+                throw LibraryError.revisionConflict(id)
+            }
+
+            let titleChanged = !Self.sameScalars(note.title, title)
+            let bodyChanged = !Self.sameScalars(note.bodyPlainText, bodyPlainText)
+            if titleChanged || bodyChanged {
+                note.title = title
+                note.bodyPlainText = bodyPlainText
+                note.modifiedAt = now
+                note.revision += 1
+            }
+            return try Self.snapshot(of: note)
+        }
+    }
+
     /// Active (not trashed) notes. Pass nil to include every folder. Newest modification first.
-    func activeNotes(inFolder folderID: UUID? = nil) async throws -> [NoteSnapshot] {
+    func activeNotes(inFolder folderID: UUID?) async throws -> [NoteSnapshot] {
         try await read { context in
             var predicates = [NSPredicate(format: "deletedAt == nil")]
             if let folderID {
@@ -195,6 +223,11 @@ actor LibraryRepository {
             preconditionFailure("Model entity \(entity) does not match \(T.self).")
         }
         return object
+    }
+
+    /// Compares Unicode scalars, not canonically equivalent strings, so a save never hides a change in encoding.
+    private static func sameScalars(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.unicodeScalars.elementsEqual(rhs.unicodeScalars)
     }
 
     private static func snapshot(of record: NoteRecord) throws -> NoteSnapshot {

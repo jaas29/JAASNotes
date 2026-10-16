@@ -3,6 +3,8 @@ import SwiftUI
 /// Three-column shell: folders, note list, and editor. Opening the library happens when the window appears.
 struct LibraryShellView: View {
     @Bindable var model: LibraryModel
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var presentSaveFailure = false
 
     var body: some View {
         Group {
@@ -23,6 +25,27 @@ struct LibraryShellView: View {
         .task {
             await model.loadIfNeeded()
         }
+        // Best-effort saves when the app leaves the foreground or the window goes away.
+        // A failure stays visible in the editor and keeps the draft.
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase != .active {
+                Task { await model.flushPendingDrafts() }
+            }
+        }
+        .onDisappear {
+            Task { await model.flushPendingDrafts() }
+        }
+        .onChange(of: model.saveFailure) { _, failure in
+            presentSaveFailure = failure != nil
+        }
+        .alert(
+            "Changes Not Saved",
+            isPresented: $presentSaveFailure
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("\(model.saveFailure ?? "")\n\nUse Retry or Save Recovery Copy in the note's status line.")
+        }
         .alert(
             "Action Failed",
             isPresented: Binding(
@@ -38,7 +61,10 @@ struct LibraryShellView: View {
 
     private var splitView: some View {
         NavigationSplitView {
-            List(selection: $model.sidebarSelection) {
+            List(selection: Binding(
+                get: { model.sidebarSelection },
+                set: { selection in Task { await model.requestSidebarSelection(selection) } }
+            )) {
                 Label("All Notes", systemImage: "note.text")
                     .tag(LibraryModel.SidebarSelection.allNotes)
 

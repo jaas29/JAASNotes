@@ -63,3 +63,22 @@ Architecture choices and approved changes. Entries are added as decisions are ma
 - **Why:** A fresh editor gives each note its own undo history and avoids resetting `NSTextView.string` during SwiftUI updates. Keeping drafts in memory until 01-04 keeps the save path in one place.
 - **Consequence:** Quitting before 01-04 loses unsaved edits. Recreating the editor resets scroll position when switching notes; that is acceptable for this stage.
 
+## D-010 — Quit with a failed save cancels Quit and shows the failure in the window
+
+- **Date:** 2026-10-15
+- **Decision:** `applicationShouldTerminate` flushes pending text. If the flush fails, Quit is cancelled. The shell's failure alert and the editor's status line offer Retry, Save Recovery Copy, and Discard. No modal dialog is shown during termination.
+- **Why:** An `NSAlert` created inside `applicationShouldTerminate` crashed the app (`NSWindow` initialization raised an exception). The same dialog works in a normal context, so the problem is specific to termination. Showing the choices in the window avoids the crash and makes Cancel Quit the default outcome.
+- **Consequence:** If no window is open when a save fails, Quit is cancelled and nothing else appears until the window is reopened. Addressed in 01-08's recovery UI.
+
+## D-011 — Autosave is driven by per-note draft revisions; failures persist until a save succeeds
+
+- **Date:** 2026-10-15
+- **Decision:**
+  - A note is dirty while its draft revision differs from the last store-acknowledged revision.
+  - Autosave waits 500 ms after the last edit and forces a save after 2 s of continuous unsaved text.
+  - Saves are serialized, and each save reports success only after the store acknowledges that exact draft revision.
+  - A failure message stays until a save succeeds.
+  - Unchanged text is ignored.
+- **Why:** This matches the plan's rule that an older save can never mark newer text as saved. Keeping the failure message avoids repeated alerts from background flushes.
+- **Consequence:** Retries do not reset the failure state. Only a successful save or an explicit discard clears it.
+

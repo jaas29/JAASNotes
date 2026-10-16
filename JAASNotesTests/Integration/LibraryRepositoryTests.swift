@@ -88,7 +88,7 @@ final class LibraryRepositoryTests: XCTestCase {
 
         let metadata = try await reopened.initializeLibraryIfNeeded()
         let folders = try await reopened.folders()
-        let notes = try await reopened.activeNotes()
+        let notes = try await reopened.activeNotes(inFolder: nil)
 
         XCTAssertEqual(metadata.libraryID, libraryID)
         XCTAssertEqual(folders.map(\.name), ["Notes", "Journal"])
@@ -140,7 +140,7 @@ final class LibraryRepositoryTests: XCTestCase {
         await assertThrowsLibraryError(.folderNotFound(missing)) {
             _ = try await repository.createNote(inFolder: missing, title: "Orphan", bodyPlainText: "")
         }
-        let notes = try await repository.activeNotes()
+        let notes = try await repository.activeNotes(inFolder: nil)
         XCTAssertTrue(notes.isEmpty)
     }
 
@@ -171,9 +171,69 @@ final class LibraryRepositoryTests: XCTestCase {
         let body = "Decomposed e\u{0301} and emoji 👩🏽‍💻\nLine two"
         _ = try await repository.createNote(inFolder: folderID, title: title, bodyPlainText: body)
 
-        let stored = try await repository.activeNotes().first
+        let stored = try await repository.activeNotes(inFolder: nil).first
         XCTAssertEqual(stored.map { Array($0.title.unicodeScalars) }, Array(title.unicodeScalars))
         XCTAssertEqual(stored.map { Array($0.bodyPlainText.unicodeScalars) }, Array(body.unicodeScalars))
+    }
+
+    // MARK: - Saving edits
+
+    func testSavingIdenticalTextChangesNothing() async throws {
+        let (repository, container) = try await openRepository()
+        defer { try? CoreDataStack.close(container) }
+        _ = try await repository.initializeLibraryIfNeeded()
+        let folderID = try await repository.folders()[0].id
+        let created = try await repository.createNote(inFolder: folderID, title: "Same", bodyPlainText: "Text")
+
+        let later = fixedDate.addingTimeInterval(60)
+        let laterRepository = LibraryRepository(container: container, now: { later })
+        let saved = try await laterRepository.updateNote(id: created.id, expectedRevision: 1, title: "Same", bodyPlainText: "Text")
+
+        XCTAssertEqual(saved.revision, 1)
+        XCTAssertEqual(saved.modifiedAt, fixedDate)
+    }
+
+    func testChangedTextIncrementsRevisionAndModificationDate() async throws {
+        let (repository, container) = try await openRepository()
+        defer { try? CoreDataStack.close(container) }
+        _ = try await repository.initializeLibraryIfNeeded()
+        let folderID = try await repository.folders()[0].id
+        let created = try await repository.createNote(inFolder: folderID, title: "", bodyPlainText: "")
+
+        let later = fixedDate.addingTimeInterval(60)
+        let laterRepository = LibraryRepository(container: container, now: { later })
+        let saved = try await laterRepository.updateNote(id: created.id, expectedRevision: 1, title: "New", bodyPlainText: "Body")
+
+        XCTAssertEqual(saved.revision, 2)
+        XCTAssertEqual(saved.modifiedAt, later)
+        XCTAssertEqual(saved.createdAt, fixedDate)
+        XCTAssertEqual(saved.title, "New")
+    }
+
+    func testStaleRevisionIsRejectedWithoutChangingData() async throws {
+        let (repository, container) = try await openRepository()
+        defer { try? CoreDataStack.close(container) }
+        _ = try await repository.initializeLibraryIfNeeded()
+        let folderID = try await repository.folders()[0].id
+        let created = try await repository.createNote(inFolder: folderID, title: "Original", bodyPlainText: "")
+
+        await assertThrowsLibraryError(.revisionConflict(created.id)) {
+            _ = try await repository.updateNote(id: created.id, expectedRevision: 7, title: "Overwrite", bodyPlainText: "")
+        }
+        let stored = try await repository.activeNotes(inFolder: nil)
+        XCTAssertEqual(stored.first?.title, "Original")
+        XCTAssertEqual(stored.first?.revision, 1)
+    }
+
+    func testUpdatingAMissingNoteIsReported() async throws {
+        let (repository, container) = try await openRepository()
+        defer { try? CoreDataStack.close(container) }
+        _ = try await repository.initializeLibraryIfNeeded()
+        let missing = UUID()
+
+        await assertThrowsLibraryError(.noteNotFound(missing)) {
+            _ = try await repository.updateNote(id: missing, expectedRevision: 1, title: "", bodyPlainText: "")
+        }
     }
 
     // MARK: - Helpers

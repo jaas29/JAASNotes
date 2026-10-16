@@ -5,7 +5,10 @@ struct NoteListView: View {
     @Bindable var model: LibraryModel
 
     var body: some View {
-        List(selection: $model.selectedNoteID) {
+        List(selection: Binding(
+            get: { model.selectedNoteID },
+            set: { noteID in Task { await model.requestNoteSelection(noteID) } }
+        )) {
             ForEach(model.visibleNotes) { note in
                 let draft = model.draft(for: note)
                 NoteRow(title: draft.title, bodyPreview: draft.bodyPlainText, modifiedAt: note.modifiedAt)

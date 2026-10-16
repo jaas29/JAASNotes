@@ -2,19 +2,26 @@ import SwiftUI
 
 @main
 struct JAASNotesApp: App {
-    @State private var model = LibraryModel()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup {
-            LibraryShellView(model: model)
+            LibraryShellView(model: appDelegate.model)
         }
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("New Note") {
-                    Task { await model.createNote() }
+                    Task { await appDelegate.model.createNote() }
                 }
                 .keyboardShortcut("n", modifiers: .command)
-                .disabled(model.phase != .ready)
+                .disabled(appDelegate.model.phase != .ready)
+            }
+            CommandGroup(replacing: .saveItem) {
+                Button("Save") {
+                    Task { await appDelegate.model.flushPendingDrafts() }
+                }
+                .keyboardShortcut("s", modifiers: .command)
+                .disabled(appDelegate.model.phase != .ready)
             }
         }
     }

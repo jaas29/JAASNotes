@@ -32,6 +32,8 @@ enum LibraryError: Error, Equatable, Sendable {
     case reservedFolderName
     case duplicateFolderName
     case folderNotFound(UUID)
+    case noteNotFound(UUID)
+    case revisionConflict(UUID)
     case libraryInconsistent(String)
     case storeLoadFailed(String)
     case saveFailed(String)
@@ -49,6 +51,10 @@ extension LibraryError: LocalizedError {
             "A folder with that name already exists."
         case .folderNotFound:
             "The folder no longer exists."
+        case .noteNotFound:
+            "The note no longer exists."
+        case .revisionConflict:
+            "This note was changed somewhere else, so your edits were not saved over it."
         case .libraryInconsistent(let detail):
             "The library data is inconsistent, so nothing was changed. \(detail)"
         case .storeLoadFailed:
