@@ -399,7 +399,7 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 
 ## 01-09 — Menus, focus routing, shortcuts, light and dark, accessibility
 
-- **Status:** NOT COMPLETE. Shortcut behavior is verified. VoiceOver and the keyboard-only walkthrough still need a manual run on the owner's Mac.
+- **Status:** COMPLETE, on the owner's report of a manual VoiceOver and keyboard-only pass. Automated shortcut tests (`KeyboardUITests`) also pass. The owner has not yet listed which checks were covered, or the macOS version used; this entry is to be updated when that is known.
 - **Date:** 2026-10-15
 - **Commit:** not committed yet
 
@@ -440,3 +440,28 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - Force kill during a pending save is not tested; the uncommitted window (up to 2 seconds of typing) is documented in the README instead.
 - CI in `.github/workflows/ci.yml` has never run.
 - Stage 1 exit gate not met, so Stage 2 has not started.
+
+- **Update:** matrix item 8's other-model case is now covered by `BackupRestoreTests.testStoreWrittenByAnotherModelVersionIsRefused`, which rewrites a real store's Core Data model hashes. It passes, and the file is unchanged after the refusal.
+
+### 01-09 owner report
+
+- The owner reports the VoiceOver and keyboard-only walkthrough passed ("everything works perfectly"). Coverage details, macOS version, and any unchecked items were not recorded. Update this section with them.
+
+## 01-10 — Stage 1 closure
+
+- **Status:** COMPLETE for the recorded environment (macOS 26.6.2, Apple M3 Pro, Xcode 26.3). Open environment gaps are listed below and are not claimed as verified.
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Evidence added
+
+- `PendingSaveKillUITests`: killed with unsaved text; the library opens and the saved note remains. Passes.
+- `BackupRestoreTests.testSnapshotInterruptedAtPublishLeavesNoBackupAndKeepsTheLibrary`: a failed final rename leaves no listed backup, no staging debris, and an intact library. Passes.
+- `ForceQuitUITests`: kill after a confirmed save. Passes.
+- Owner's manual pass on macOS 26.6.2: VoiceOver walkthrough and keyboard-only pass recorded as passed.
+
+### Environment gaps (not verified)
+
+- **macOS 14 runtime:** not run. No macOS 14 machine or VM is available. The deployment target is 14.0, so this is a compile-time setting only.
+- **CI:** `.github/workflows/ci.yml` is pushed with this commit. Its result is recorded in the CI section below once it has run.
+- **Intel:** not tested.

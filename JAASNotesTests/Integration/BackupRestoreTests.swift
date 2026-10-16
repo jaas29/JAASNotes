@@ -257,6 +257,76 @@ final class BackupRestoreTests: XCTestCase {
         sqlite3_close(database)
     }
 
+    /// Matrix item 8: a real store written by this model, then given model hashes that no build of this app matches,
+    /// as a store from a newer version would have. Opening it must fail, and the file must not change.
+    func testStoreWrittenByAnotherModelVersionIsRefused() async throws {
+        let location = makeLocation("other-model")
+        try await makePopulatedLibrary(location, titles: ["Written by a newer build"])
+        try rewriteStoredModelHashes(at: location.storeURL)
+        let before = try Data(contentsOf: location.storeURL)
+
+        let model = LibraryModel()
+        await model.load(at: location)
+
+        guard case .failed = model.phase else { return XCTFail("A store from another model must not open.") }
+        XCTAssertEqual(try Data(contentsOf: location.storeURL), before, "The store must not be changed.")
+    }
+
+    /// Replaces the model version hashes inside Core Data's `Z_METADATA` plist. Only the fixture changes; the rest of
+    /// the store is untouched.
+    private func rewriteStoredModelHashes(at url: URL) throws {
+        var database: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(url.path, &database), SQLITE_OK)
+        defer { sqlite3_close(database) }
+
+        var select: OpaquePointer?
+        XCTAssertEqual(sqlite3_prepare_v2(database, "SELECT Z_PLIST FROM Z_METADATA", -1, &select, nil), SQLITE_OK)
+        XCTAssertEqual(sqlite3_step(select), SQLITE_ROW)
+        let length = Int(sqlite3_column_bytes(select, 0))
+        let bytes = Data(bytes: sqlite3_column_blob(select, 0), count: length)
+        sqlite3_finalize(select)
+
+        var format = PropertyListSerialization.PropertyListFormat.binary
+        var plist = try XCTUnwrap(try PropertyListSerialization.propertyList(from: bytes, options: .mutableContainersAndLeaves, format: &format) as? [String: Any])
+        var hashes = try XCTUnwrap(plist["NSStoreModelVersionHashes"] as? [String: Data])
+        for key in hashes.keys {
+            hashes[key] = Data(repeating: 0xAB, count: hashes[key]?.count ?? 32)
+        }
+        plist["NSStoreModelVersionHashes"] = hashes
+        let rewritten = try PropertyListSerialization.data(fromPropertyList: plist, format: .binary, options: 0)
+
+        var update: OpaquePointer?
+        XCTAssertEqual(sqlite3_prepare_v2(database, "UPDATE Z_METADATA SET Z_PLIST = ?", -1, &update, nil), SQLITE_OK)
+        rewritten.withUnsafeBytes { buffer in
+            _ = sqlite3_bind_blob(update, 1, buffer.baseAddress, Int32(buffer.count), unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+        }
+        XCTAssertEqual(sqlite3_step(update), SQLITE_DONE)
+        sqlite3_finalize(update)
+    }
+
+    /// Interruption at the publish boundary: the copy was validated, but the final rename fails. No partial package is
+    /// listed, staging is cleaned up, and the live library still opens with its data.
+    func testSnapshotInterruptedAtPublishLeavesNoBackupAndKeepsTheLibrary() async throws {
+        let location = makeLocation("publish-interrupt")
+        try await makePopulatedLibrary(location, titles: ["Still here"])
+        // A regular file where the Backups folder should be makes the final rename fail.
+        try FileManager.default.createDirectory(at: location.rootURL, withIntermediateDirectories: true)
+        try Data("blocker".utf8).write(to: LibraryBackupService.backupsDirectory(in: location))
+
+        do {
+            _ = try await snapshot(location)
+            XCTFail("The publish step must fail.")
+        } catch {
+        }
+
+        let stagedEntries = try FileManager.default.contentsOfDirectory(atPath: LibraryBackupService.stagingDirectory(in: location).path)
+        XCTAssertTrue(stagedEntries.isEmpty, "The partial package must be removed from staging.")
+        try FileManager.default.removeItem(at: LibraryBackupService.backupsDirectory(in: location))
+        XCTAssertEqual(try LibraryBackupService.list(in: location), [])
+        let titlesAfter = try await titles(in: location)
+        XCTAssertEqual(titlesAfter, ["Still here"])
+    }
+
     // MARK: - Retention and automatic backups
 
     func testAutomaticRetentionKeepsSevenAndNeverPrunesManualBackups() async throws {

@@ -417,3 +417,38 @@ final class ForceQuitUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5), "A saved note must survive a force quit.")
     }
 }
+
+/// Matrix item 6, pending case: a kill while text is still unsaved may lose that text, but the library must still open.
+final class PendingSaveKillUITests: XCTestCase {
+    private let libraryName = UUID().uuidString
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    func testKillWithUnsavedTextLeavesALibraryThatOpens() throws {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+        app.buttons["New Note"].firstMatch.click()
+        let title = app.textFields["noteTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeText("Saved first")
+        app.typeKey("s", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["Saved"].waitForExistence(timeout: 5))
+
+        // Type immediately and kill before the 0.5 s autosave can run.
+        title.typeText(" and unsaved")
+        let running = NSRunningApplication.runningApplications(withBundleIdentifier: "org.jaasnotes.JAASNotes")
+        running.first?.forceTerminate()
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 15))
+
+        let relaunched = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(relaunched.staticTexts["All Notes"].waitForExistence(timeout: 10), "The library must open after a kill.")
+        let row = relaunched.staticTexts.matching(
+            NSPredicate(format: "identifier == 'noteRow' AND value BEGINSWITH %@", "Saved first")
+        ).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "The acknowledged save must still be there.")
+    }
+}

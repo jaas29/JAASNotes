@@ -30,13 +30,18 @@ Use a new result-bundle path on every run.
 | 2 | Type, switch, close, quit, relaunch | UI: Cmd-S and Cmd-Q relaunch; window close not automated |
 | 3 | Delete, quit, relaunch, restore; no purge | `TrashUITests`, `TrashRepositoryTests` |
 | 4 | Old save finishing after newer edit | `AutosaveTests` with a paused store |
-| 5 | Injected save failure, retry, recovery copy, canceled quit | Unit and UI; Retry and save panel not clicked in automation |
-| 6 | Force kill after a confirmed save | `ForceQuitUITests` (SIGKILL). Pending-save kill not yet tested |
-| 7 | Backup, modify, restore; interruption | `BackupRestoreTests` (restore interruption and fresh restore); snapshot-boundary interruption not injected |
-| 8 | Corrupt and future-schema fixtures | Corrupt and foreign-file tests pass; a real newer-model store is not built |
+| 5 | Injected save failure, retry, recovery copy, canceled quit | Unit (`AutosaveTests`: retry without duplicates, recovery copy verified) and UI (canceled quit). The Retry button and save panel are exercised by the owner's manual pass |
+| 6 | Force kill after a confirmed save and with unsaved text | `ForceQuitUITests` (SIGKILL after save); `PendingSaveKillUITests` (kill with unsaved text: library opens and the saved note remains) |
+| 7 | Backup, modify, restore; interruption | `BackupRestoreTests`: restore interruption, fresh restore, and a snapshot interrupted at the publish step (no partial package, library intact) |
+| 8 | Corrupt and future-schema fixtures | Corrupt, foreign-file, and other-model-hash tests pass (`testStoreWrittenByAnotherModelVersionIsRefused` rewrites a real store's model hashes) |
 | 9 | Menus, keyboard, VoiceOver, appearance, long text, IME | Keyboard shortcuts tested; VoiceOver and the rest need a manual run |
 
-## Manual checks still needed (owner's Mac)
+## Manual checks (owner's Mac, macOS 26.6.2, M3 Pro)
+
+The owner ran the VoiceOver walkthrough and the keyboard-only pass on this machine. Recorded as passed.
+
+Still not run by anyone:
+
 
 - VoiceOver walkthrough of create, edit, move, delete, restore, search, backups, and recovery.
 - Keyboard-only pass with Tab order across sidebar, list, title, and body.

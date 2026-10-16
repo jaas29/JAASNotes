@@ -327,9 +327,9 @@ Use official documentation and verify availability against the chosen SDK during
 
 01-08: Implement quiesced verified backups, retention, backup status, recoverable restore swaps, and store-open failure UI. Requires 01-04 and 01-07. Complete when a snapshot restores into a fresh library and interruption/corruption tests preserve the original without silently creating an empty store. [COMPLETE]
 
-01-09: Complete native menus, focus routing, shortcuts, light/dark behavior, accessible labels, and window reopening. Requires 01-06 through 01-08. Complete when keyboard-only and VoiceOver core workflows work and editor text-delete shortcuts cannot trash a note accidentally. [NOT COMPLETE]
+01-09: Complete native menus, focus routing, shortcuts, light/dark behavior, accessible labels, and window reopening. Requires 01-06 through 01-08. Complete when keyboard-only and VoiceOver core workflows work and editor text-delete shortcuts cannot trash a note accidentally. [COMPLETE]
 
-01-10: Run the complete Stage 1 persistence/failure/UI matrix, add macOS CI, and document build/run/recovery instructions and measured limitations. Requires 01-01 through 01-09. Complete when the runnable plain-text app meets every Stage 1 gate with evidence and no unresolved data-loss defect. [NOT COMPLETE]
+01-10: Run the complete Stage 1 persistence/failure/UI matrix, add macOS CI, and document build/run/recovery instructions and measured limitations. Requires 01-01 through 01-09. Complete when the runnable plain-text app meets every Stage 1 gate with evidence and no unresolved data-loss defect. [COMPLETE]
 
 02-01: Add the version-2 pinned-note field and staged migration infrastructure with pre-migration backup and recoverable swap. Requires 01-10. Complete when v1 fixtures upgrade with preserved IDs/content and interrupted or unsupported migrations leave the original recoverable. [NOT COMPLETE]
 
