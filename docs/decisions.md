@@ -199,3 +199,14 @@ Architecture choices and approved changes. Entries are added as decisions are ma
   - The limit is 100 MiB per file, checked before copying and again while copying. It is provisional, as the plan says.
 - **Why:** the store and the file system cannot share one transaction. The order of operations means a row never points at bytes that were not written, and nothing is deleted that might still be needed.
 - **Consequence:** backups and restores copy the attachment folder with the store. Restores of backups made before version 4 have no attachments folder and that is fine. A library moved by migration copies the folder into the candidate, so an upgrade cannot drop attachments. No version 3 library can contain attachments, so that path is only exercised in future upgrades.
+
+## D-028 — The portable archive is a validated folder package; import always creates new identities
+
+- **Decision:**
+  - A `.jnarchive` folder holds `manifest.json` (format name, version, counts, and a SHA-256 for every other file), `archive.json` (folders, notes, base64 RTF, checklists, attachment metadata), and `attachments/<UUID>/payload`.
+  - Reading checks everything before anything is written: the format and version (only version 1 is read), every listed file's checksum and size, that no file is unlisted, that no path is unsafe, that no link is present, that rich text and checklists validate, and that IDs are unique.
+  - Import gives every folder, note, and attachment a new identity. Archive folders named like existing ones get " (Imported)" and then " (Imported n)". The archive's Notes folder becomes "Notes (Imported)", so it never merges into the library's Notes. The review sheet lists the counts and every rename before anything is written.
+  - All rows are written in one transaction. Attachment bytes are copied in beforehand; if the transaction fails they are removed.
+  - Plain text and RTF files import as one note each. Plain text carries no formatting. Exported plain text puts the title first, and RTF keeps formatting only for rich notes.
+- **Why:** archives must be validated completely before the first write, and a failed import must leave nothing visible. New identities mean an import can never overwrite a note.
+- **Consequence:** importing the same archive twice creates two copies, by design. Archive format version 1 is frozen once released; later versions need a new version number and a reader for the old one.

@@ -80,6 +80,36 @@ struct JAASNotesApp: App {
                 .disabled(model.phase != .ready)
             }
 
+            CommandGroup(after: .importExport) {
+                Button("Export Archive…") {
+                    ArchivePanels.exportArchive(model: model)
+                }
+
+                Button("Import Archive…") {
+                    ArchivePanels.importArchive(model: model)
+                }
+
+                Button("Import Text or RTF File…") {
+                    ArchivePanels.importTextFile(model: model)
+                }
+
+                Divider()
+
+                Button("Export Selected Note as Text…") {
+                    if let note = model.selectedNote {
+                        ArchivePanels.exportNote(model: model, note: note, asRTF: false)
+                    }
+                }
+                .disabled(model.selectedNote == nil)
+
+                Button("Export Selected Note as RTF…") {
+                    if let note = model.selectedNote {
+                        ArchivePanels.exportNote(model: model, note: note, asRTF: true)
+                    }
+                }
+                .disabled(model.selectedNote == nil)
+            }
+
             CommandGroup(after: .saveItem) {
                 Button("Attach File…") {
                     guard let note = model.selectedNote, note.deletedAt == nil else { return }

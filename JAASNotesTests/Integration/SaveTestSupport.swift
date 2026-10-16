@@ -98,6 +98,10 @@ actor FaultyNoteStore: NoteStore {
         try await base.body(of: id)
     }
 
+    func importArchive(_ plan: ArchiveImportPlan) async throws {
+        try await base.importArchive(plan)
+    }
+
     func createAttachment(_ new: NewAttachment) async throws -> AttachmentSnapshot {
         try await base.createAttachment(new)
     }

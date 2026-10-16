@@ -839,6 +839,110 @@ final class LibraryModel {
         return (attributes?[.size] as? NSNumber)?.int64Value == row.byteCount
     }
 
+    // MARK: - Archives and text files
+
+    /// Writes a portable archive of every folder and note, including Recently Deleted. Pending text is saved first.
+    @discardableResult
+    func exportArchive(to destination: URL) async -> Bool {
+        guard let store = activeStore, let location else { return false }
+        guard await flushPendingDrafts() else {
+            operationError = "The archive was not written because unsaved changes could not be saved."
+            return false
+        }
+        do {
+            _ = try await ArchiveService.export(to: destination, store: store, location: location)
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
+    /// Checks an archive before anything is imported, and returns what the import would do for the review sheet.
+    func reviewArchive(at url: URL) async -> ArchiveService.Validated? {
+        let existing = folders.map(\.name)
+        do {
+            return try await Task.detached { try ArchiveService.read(at: url, existingFolderNames: existing) }.value
+        } catch {
+            operationError = Self.message(for: error)
+            return nil
+        }
+    }
+
+    /// Imports a reviewed archive as new notes and folders. Nothing existing is changed.
+    @discardableResult
+    func importArchive(_ archive: ArchiveService.Validated) async -> Bool {
+        guard let store = activeStore, let location else { return false }
+        do {
+            _ = try await ArchiveService.importArchive(archive, location: location, store: store)
+            try await refresh()
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
+    /// Imports a plain text file as a new note in the Notes folder. Formatting cannot exist in plain text, so none is added.
+    @discardableResult
+    func importTextFile(at url: URL) async -> Bool {
+        guard let store = activeStore, let defaultFolder = folders.first(where: \.isDefault) else { return false }
+        do {
+            let imported = try ArchiveService.importPlainText(at: url)
+            _ = try await store.createNote(inFolder: defaultFolder.id, title: imported.title, bodyPlainText: imported.body)
+            try await refresh()
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
+    /// Imports an RTF file as a new formatted note. Its RTF is validated like any other rich body.
+    @discardableResult
+    func importRTFFile(at url: URL) async -> Bool {
+        guard let store = activeStore, let defaultFolder = folders.first(where: \.isDefault) else { return false }
+        do {
+            let imported = try ArchiveService.importRTF(at: url)
+            let note = try await store.createNote(inFolder: defaultFolder.id, title: imported.title, bodyPlainText: "")
+            _ = try await store.updateRichNote(id: note.id, expectedRevision: note.revision, title: imported.title, content: imported.content)
+            try await refresh()
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
+    /// Writes one note as plain text or RTF. The note's text is read from the store, so saved state is what gets written.
+    @discardableResult
+    func exportNote(_ note: NoteSnapshot, asRTF: Bool, to destination: URL) async -> Bool {
+        guard let store = activeStore else { return false }
+        guard await flushPendingDrafts() else {
+            operationError = "The note was not exported because unsaved changes could not be saved."
+            return false
+        }
+        do {
+            let body = try await store.body(of: note.id)
+            let data: Data
+            if asRTF {
+                data = try ArchiveService.rtfExport(title: note.title, body: body)
+            } else {
+                let text: String
+                switch body {
+                case .plain(let plain), .unreadable(let plain, _): text = plain
+                case .rich(let content): text = content.plainText
+                }
+                data = ArchiveService.plainTextExport(title: note.title, body: text)
+            }
+            try data.write(to: destination, options: .atomic)
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
     /// Creates a plain-text copy of an unreadable note in the same folder and selects it. The original is not changed.
     func makeRecoveryCopy(for noteID: UUID) async -> Bool {
         guard let store = activeStore else { return false }

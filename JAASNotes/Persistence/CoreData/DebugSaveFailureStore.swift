@@ -26,6 +26,10 @@ actor DebugSaveFailureStore: NoteStore {
         try await base.body(of: id)
     }
 
+    func importArchive(_ plan: ArchiveImportPlan) async throws {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
     func createAttachment(_ new: NewAttachment) async throws -> AttachmentSnapshot {
         throw LibraryError.saveFailed("Writes are disabled for this test run.")
     }

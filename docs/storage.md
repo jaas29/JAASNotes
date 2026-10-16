@@ -55,3 +55,15 @@ If step 4–5 fails, the code rolls back. If the process dies, `recoverInterrupt
 - Inline pictures and files in the text are still refused before a save, because RTF writing would otherwise drop them silently. Attachments are a separate tray, not inline.
 - Archives are not part of the store yet (Stage 4).
 - Rich text is stored in precomposed (NFC) form. RTF round trips do not keep decomposed sequences (for example `e` plus a combining acute), so a note's first rich save may change those sequences to their precomposed form. The text looks the same. Checklist ranges move with their paragraphs.
+
+## Portable archive (Stage 4)
+
+Not a Core Data backup. A folder named `*.jnarchive`:
+
+```text
+manifest.json                 format "jaasnotes-archive", formatVersion 1, counts, SHA-256 of every other file
+archive.json                  folders, notes (RTF base64, checklist sidecar, attachment metadata)
+attachments/<UUID>/payload    attachment bytes
+```
+
+Export refuses to overwrite an existing folder and checks every attachment's checksum before writing. Import reads and validates the whole archive first (see D-028), then writes new rows in one transaction.

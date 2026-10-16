@@ -60,6 +60,9 @@
 		B6E0C0D5D4F355357541537D /* AttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB07F818FC40CAFF17E4EE5 /* AttachmentTests.swift */; };
 		441003686B99DDD76CEACDBC /* AttachmentTray.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B7C56A8FE69D2B1AA9BF0D /* AttachmentTray.swift */; };
 		E868B7D688F02C13498EB89B /* AttachmentModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 133A358344FB5F4F712ECEBF /* AttachmentModelTests.swift */; };
+		B3484610C49AFA62AFC3E52A /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C191DBA8CC1C3EA3D57ADAB0 /* ArchiveService.swift */; };
+		70E5602D13C3FA8A796216A1 /* ArchivePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCF90F7DC6D275D160AA162 /* ArchivePanels.swift */; };
+		D9DAF13D2AB51CF1FC2225D2 /* ArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43858C8EC50A1EA959B9A7DD /* ArchiveTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -139,6 +142,9 @@
 		2AB07F818FC40CAFF17E4EE5 /* AttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentTests.swift; sourceTree = "<group>"; };
 		53B7C56A8FE69D2B1AA9BF0D /* AttachmentTray.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentTray.swift; sourceTree = "<group>"; };
 		133A358344FB5F4F712ECEBF /* AttachmentModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentModelTests.swift; sourceTree = "<group>"; };
+		C191DBA8CC1C3EA3D57ADAB0 /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
+		EBCF90F7DC6D275D160AA162 /* ArchivePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePanels.swift; sourceTree = "<group>"; };
+		43858C8EC50A1EA959B9A7DD /* ArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -214,6 +220,7 @@
 		A1000000000000000000E007 /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				EBCF90F7DC6D275D160AA162 /* ArchivePanels.swift */,
 				60BE48580D0D1712EF90656D /* LibraryModel.swift */,
 				A1000000000000000000F012 /* LibraryShellView.swift */,
 				F02F5F5C6A33AB2D897E3A9F /* SettingsView.swift */,
@@ -361,6 +368,7 @@
 		21FD870E86E05B4814A7D356 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C191DBA8CC1C3EA3D57ADAB0 /* ArchiveService.swift */,
 				B18084E1B251427E5381B417 /* AttachmentService.swift */,
 				DB018A13BD332ACC0644BDA7 /* RichTextCodec.swift */,
 				DBEE966CDA534F28BCF1A524 /* RecoveryCopy.swift */,
@@ -383,6 +391,7 @@
 		CFE4AC878D5E20BB058F5E7A /* Integration */ = {
 			isa = PBXGroup;
 			children = (
+				43858C8EC50A1EA959B9A7DD /* ArchiveTests.swift */,
 				133A358344FB5F4F712ECEBF /* AttachmentModelTests.swift */,
 				2AB07F818FC40CAFF17E4EE5 /* AttachmentTests.swift */,
 				73D5BE4E2E42C18BFA32BA34 /* RichEditingModelTests.swift */,
@@ -515,6 +524,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				70E5602D13C3FA8A796216A1 /* ArchivePanels.swift in Sources */,
+				B3484610C49AFA62AFC3E52A /* ArchiveService.swift in Sources */,
 				441003686B99DDD76CEACDBC /* AttachmentTray.swift in Sources */,
 				AF01A5BEC71386CA04B8D8CD /* AttachmentService.swift in Sources */,
 				A980D137103D3163D136F8D6 /* ChecklistEditing.swift in Sources */,
@@ -550,6 +561,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D9DAF13D2AB51CF1FC2225D2 /* ArchiveTests.swift in Sources */,
 				E868B7D688F02C13498EB89B /* AttachmentModelTests.swift in Sources */,
 				B6E0C0D5D4F355357541537D /* AttachmentTests.swift in Sources */,
 				7A1F0891102BD73834EEC723 /* ChecklistEditorTests.swift in Sources */,

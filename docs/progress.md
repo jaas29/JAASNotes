@@ -746,3 +746,27 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 
 - Not run: a VoiceOver and keyboard walkthrough of the tray; the open-in-another-app action (it calls NSWorkspace and is not automated).
 - Attachment thumbnails read the file on the main actor. Fine for small images; measure later.
+
+## 04-03 — Archive export and import, text and RTF files
+
+- **Status:** COMPLETE for the automated evidence below.
+- **Date:** 2026-10-16
+- **Commit:** see git log
+
+### Changes
+
+- **Format:** `Services/ArchiveService.swift`: `.jnarchive` folder package, format version 1 (D-028). Export writes a staging folder, then moves it into place, so a failed export leaves nothing.
+- **Import review:** File > Import Archive… reads and checks the archive, shows counts and any renames in an alert, and writes only after Import is chosen.
+- **Import write:** `LibraryRepository.importArchive` writes folders, notes, and attachment rows in one transaction. Copied bytes are removed if it fails.
+- **Text and RTF:** File > Import Text or RTF File… and File > Export Selected Note as Text… / as RTF…
+- **Menus:** File > Export Archive…, Import Archive…, Import Text or RTF File…, Export Selected Note as Text…, Export Selected Note as RTF….
+
+### Results
+
+- Unit + integration: 221 tests pass, including `ArchiveTests` (12): round trip into a fresh library keeps folders, trash, pins, formatting, checklist item identity, and attachment bytes; import into the same library renames clashing folders and adds new notes; a changed document, an unlisted file, a missing file, an unsupported version, a path traversal entry, and a symbolic link are each refused; a failed import leaves no partial visible import and no copied bytes; plain text and RTF export and import keep their text and formatting; binary data is not imported as text; export refuses an existing destination.
+
+### Remaining gaps
+
+- The archive is not yet imported from a file chosen in another app's format (only JAASNotes archives).
+- Importing a very large archive has not been measured. The limits are provisional (64 MB for the document, 100 MB per attachment).
+- Not run by hand: the import review alert and panels (they are AppKit panels, not automated).

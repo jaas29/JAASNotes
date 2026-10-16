@@ -444,6 +444,63 @@ actor LibraryRepository: NoteStore {
         }
     }
 
+    // MARK: - Archive import
+
+    /// Writes an import plan in one transaction. Every identity in the plan is new, so nothing existing is overwritten.
+    func importArchive(_ plan: ArchiveImportPlan) async throws {
+        try await write { context, _ in
+            let existingFolders = try Self.fetch(FolderRecord.self, entity: "Folder", in: context)
+            var folders: [UUID: FolderRecord] = [:]
+            for folder in plan.folders {
+                let record = Self.insert(FolderRecord.self, entity: "Folder", in: context)
+                record.id = folder.id
+                record.name = folder.name
+                record.normalizedName = FolderName.normalize(folder.name)
+                record.createdAt = folder.createdAt
+                record.modifiedAt = folder.modifiedAt
+                record.isDefault = false
+                folders[folder.id] = record
+            }
+            for note in plan.notes {
+                guard let folder = folders[note.folderID] ?? existingFolders.first(where: { $0.id == note.folderID }) else {
+                    throw LibraryError.folderNotFound(note.folderID)
+                }
+                let record = Self.insert(NoteRecord.self, entity: "Note", in: context)
+                record.id = note.id
+                record.title = note.title
+                record.bodyPlainText = note.bodyPlainText
+                record.createdAt = note.createdAt
+                record.modifiedAt = note.modifiedAt
+                record.deletedAt = note.deletedAt
+                record.revision = 1
+                record.isPinned = note.isPinned
+                record.contentFormatVersion = note.rtf == nil ? 0 : Int32(RichNoteContent.formatVersion)
+                record.richTextData = note.rtf
+                record.checklistData = note.checklistData
+                record.folder = folder
+            }
+            let noteRecords = try Self.fetch(NoteRecord.self, entity: "Note", in: context)
+            var orderByNote: [UUID: Int32] = [:]
+            for attachment in plan.attachments {
+                guard let note = noteRecords.first(where: { $0.id == attachment.noteID }) else {
+                    throw LibraryError.noteNotFound(attachment.noteID)
+                }
+                let order = orderByNote[attachment.noteID, default: 0]
+                orderByNote[attachment.noteID] = order + 1
+                let record = Self.insert(AttachmentRecord.self, entity: "Attachment", in: context)
+                record.id = attachment.id
+                record.originalFilename = attachment.originalFilename
+                record.contentType = attachment.contentType
+                record.byteCount = attachment.byteCount
+                record.sha256 = attachment.sha256
+                record.relativePath = attachment.relativePath
+                record.createdAt = Date()
+                record.displayOrder = order
+                record.note = note
+            }
+        }
+    }
+
     // MARK: - Attachments
 
     /// Records an attachment whose payload is already in place. Attachments do not change the note's revision or dates,

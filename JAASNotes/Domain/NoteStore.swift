@@ -29,4 +29,6 @@ protocol NoteStore: AttachmentStore {
     func createFolder(named name: String) async throws -> FolderSnapshot
     func renameFolder(id: UUID, to name: String) async throws -> FolderSnapshot
     func moveNote(id: UUID, expectedRevision: Int64, toFolderID folderID: UUID) async throws -> NoteSnapshot
+    /// Writes an archive import in one transaction: every folder, note, and attachment row, or none of them.
+    func importArchive(_ plan: ArchiveImportPlan) async throws
 }

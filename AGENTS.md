@@ -351,6 +351,6 @@ Use official documentation and verify availability against the chosen SDK during
 
 04-02: Add the attachment tray, image previews, file open/export/removal, size validation, and accessible missing-file states. Requires 04-01. Complete when image and ordinary-file workflows work by keyboard and trashed notes retain their files until permanent deletion. [COMPLETE]
 
-04-03: Implement staged plain-text/RTF import/export and versioned portable archives with validation, collision review, ID remapping, and rollback/reconciliation. Requires 04-02. Complete when archive round trips preserve supported notes/folders/checklists/files in a fresh library and malformed/interrupted imports leave no partial visible import. [NOT COMPLETE]
+04-03: Implement staged plain-text/RTF import/export and versioned portable archives with validation, collision review, ID remapping, and rollback/reconciliation. Requires 04-02. Complete when archive round trips preserve supported notes/folders/checklists/files in a fresh library and malformed/interrupted imports leave no partial visible import. [COMPLETE]
 
 04-04: Finish original branding, README/CONTRIBUTING, owner-confirmed license, release configuration, compatibility evidence, and the full regression matrix. Requires 04-03. Complete when a fresh checkout produces a runnable release build, all four stage gates pass or explicit environment gaps are documented, and a reviewable distribution candidate is ready without unauthorized publication. [NOT COMPLETE]
