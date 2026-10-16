@@ -382,3 +382,38 @@ final class KeyboardUITests: XCTestCase {
         )
     }
 }
+
+/// Matrix item 6: a save that was acknowledged survives a hard kill (SIGKILL), with no chance to flush on exit.
+final class ForceQuitUITests: XCTestCase {
+    private let libraryName = UUID().uuidString
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    func testSavedNoteSurvivesForceTermination() throws {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+        app.buttons["New Note"].firstMatch.click()
+        let title = app.textFields["noteTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeText("Survives kill")
+        app.typeKey("s", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["Saved"].waitForExistence(timeout: 5))
+
+        // forceTerminate sends SIGKILL: no quit handler runs and nothing is flushed on exit.
+        let running = NSRunningApplication.runningApplications(withBundleIdentifier: "org.jaasnotes.JAASNotes")
+        XCTAssertEqual(running.count, 1)
+        running.first?.forceTerminate()
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 15))
+
+        let relaunched = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(relaunched.staticTexts["All Notes"].waitForExistence(timeout: 10))
+        let row = relaunched.staticTexts.matching(
+            NSPredicate(format: "identifier == 'noteRow' AND value BEGINSWITH %@", "Survives kill")
+        ).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "A saved note must survive a force quit.")
+    }
+}

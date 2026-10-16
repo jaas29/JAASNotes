@@ -422,3 +422,21 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - **Long text, large Dynamic Type, and right-to-left input** not checked.
 - **Settings window (Cmd-comma)** is not implemented. It is not needed for Stage 1's listed controls, but the plan lists it under menus.
 - **Window close and reopen** are not checked after closing the only window.
+
+## 01-10 — Stage 1 matrix status (partial)
+
+- **Status:** NOT COMPLETE.
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Added
+
+- `ForceQuitUITests.testSavedNoteSurvivesForceTermination`: a saved note survives SIGKILL (`NSRunningApplication.forceTerminate`). Passes.
+- `docs/storage.md` (layout, snapshot and restore procedures) and `docs/testing.md` (commands, injection points, matrix status).
+
+### Still open
+
+- Matrix items 2, 5, 7, 8, and 9 have gaps listed in `docs/testing.md`. Item 9 (VoiceOver, keyboard-only, appearance, IME, long text) needs a manual run on the owner's Mac.
+- Force kill during a pending save is not tested; the uncommitted window (up to 2 seconds of typing) is documented in the README instead.
+- CI in `.github/workflows/ci.yml` has never run.
+- Stage 1 exit gate not met, so Stage 2 has not started.
