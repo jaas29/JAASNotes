@@ -5,10 +5,10 @@ JAASNotes is an independent, native macOS notes app. It is in early development.
 ## Status
 
 - **Stage 1 (plain-text app) and Stage 2 (organization and recovery): complete** with the evidence in `docs/progress.md`.
-- **Stage 3 (rich text and checklists): in progress.**
-  - Done: formatted notes are stored (RTF, checklist sidecar, and search text), with validation and recovery copies for damaged formatting; bold, italic, underline, headings, and bulleted lists; checklists with accessible checkboxes that keep their identity through edits, Return, paste, and undo.
-  - Not done: a manual VoiceOver and keyboard walkthrough of the new controls, and the Stage 3 regression gate (03-04). Automated tests pass; see `docs/progress.md`.
-- **Not built yet:** attachments, import and export, and any archive format (Stage 4).
+- **Stage 3 (rich text and checklists): complete**, including the owner's VoiceOver and keyboard pass.
+- **Stage 4 (attachments, interchange, release readiness): in progress.**
+  - Done: attachments (copied into the library with checksums, an attachment tray with previews, Open, Save Copy, and Remove, and a missing-file state); portable archive export and import with a review step; plain text and RTF import and export for single notes; an original app icon.
+  - Not done: the owner's license choice (MIT is recommended, but no LICENSE file is added until you confirm it), a signed release build with your Developer team, and a manual VoiceOver walkthrough of the attachment tray and the archive dialogs. See `docs/progress.md`.
 
 ## Requirements
 
@@ -52,7 +52,15 @@ Do not edit these files while the app is open, and do not put the library in a s
 - New and existing notes are plain text until you format them. The first Format command on a note makes it formatted. Plain notes keep their plain-text storage.
 - **Format menu:** Bold (Cmd-B), Italic (Cmd-I), Underline (Cmd-U), Heading 1–3 (Option-Cmd-1…3), Body Text (Option-Cmd-0), Bulleted List (Shift-Cmd-L), Checklist (Shift-Cmd-C), Check or Uncheck Item (Shift-Cmd-Return).
 - A checklist item has a checkbox beside its line. Checked state and identity survive edits, splitting a line with Return, pasting, and undo.
-- Pictures and files cannot be added yet. Formatting is saved in the library, not in the file system.
+- Formatting is saved in the library, not in the file system.
+
+## Attachments and archives
+
+- **Attach File…** (File menu, Shift-Cmd-A, or the button under the note text) copies a file into the library. The original is not changed or needed afterward. Files over 100 MB are refused.
+- Each attachment shows a preview (images), its size, and buttons to Open (a copy is opened in the app for its type), Save Copy…, and Remove. A file that is missing or damaged is marked "File missing" and cannot be opened or exported.
+- Trashed notes keep their attachments until the note is permanently deleted.
+- **Export Archive…** writes a `.jnarchive` folder with every folder and note (including Recently Deleted), formatting, checklists, and attachments, each file checksummed. **Import Archive…** checks the whole archive first, shows what will be added and any renamed folders, and then adds everything as new items. Nothing already in your library is changed.
+- **Import Text or RTF File…** adds one note. **Export Selected Note as Text…** and **…as RTF…** write one note. Plain text does not keep formatting.
 - A note whose formatting cannot be read opens read-only, showing its saved text, with **Make Recovery Copy**. Its original is never overwritten.
 
 ## Backups and recovery
@@ -77,7 +85,8 @@ Do not edit these files while the app is open, and do not put the library in a s
 - Checklist items are not supported in a paragraph that also has a bullet.
 - Text with carriage returns or Unicode line-separator characters (U+2028, U+2029) is saved as line feeds. Checklist positions are kept in step, but the paste of such text has not been tested.
 - Recovery copies from "Save Recovery Copy…" keep plain text only.
-- Attachments are not supported; inline pictures and files are refused before a save.
+- Inline pictures and files in the text are refused before a save. Attachments are a separate tray, not part of the text.
+- Imported archives are read from JAASNotes archive folders only.
 
 ## Documentation
 

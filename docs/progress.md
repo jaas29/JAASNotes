@@ -770,3 +770,24 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - The archive is not yet imported from a file chosen in another app's format (only JAASNotes archives).
 - Importing a very large archive has not been measured. The limits are provisional (64 MB for the document, 100 MB per attachment).
 - Not run by hand: the import review alert and panels (they are AppKit panels, not automated).
+
+## 04-04 — Branding, release configuration, documentation, regression (partial)
+
+- **Status:** NOT COMPLETE. Waiting on two owner decisions: the license (the plan requires an owner-confirmed license before publication) and a signing team for a distributable build.
+- **Date:** 2026-10-16
+- **Commit:** see git log
+
+### Done
+
+- **Icon:** an original JAASNotes icon (teal rounded square, note page, folder tab), drawn by a one-off AppKit script that is not kept in the repository; the PNGs are in `JAASNotes/Resources/Assets.xcassets/AppIcon.appiconset`. `JAASNotes/Resources/AppIcon.icns` is what the bundle uses. The asset catalog compiler did not emit its icon in this project (it passed no `--app-icon` flag even with the setting), so the bundle uses `CFBundleIconFile` through `JAASNotes/Resources/Info.plist`. The catalog remains for future assets.
+- **Release build:** `xcodebuild -configuration Release build CODE_SIGNING_ALLOWED=NO` succeeds (deployment target 14.0). It is unsigned. A signed, notarized build needs your Developer team and is not done.
+- **Documentation:** README (status, attachments, archives, limitations), `CONTRIBUTING.md`, `docs/storage.md`, `docs/decisions.md`.
+- **Regression:** full Debug suite (unit, integration, and UI): 240 tests. 238 passed in the last full run. Two UI tests failed in that run (`testTypingJustBeforeQuitIsSaved`, `testKillWithUnsavedTextLeavesALibraryThatOpens`) and passed when run alone. The same kind of launch and timing failure was recorded in 02-03/03-02. Not fixed.
+
+### Not done
+
+- **License:** no LICENSE file. MIT is recommended in the plan. The owner needs to choose it before the repository is published.
+- **Signed release:** needs the owner's team and identity. No notarization.
+- **Compatibility evidence:** only macOS 26.6.2 on Apple M3 Pro with Xcode 26.3 has been tested. macOS 14 and Intel are untested.
+- **Manual accessibility pass of Stage 4 controls:** the attachment tray and the archive dialogs have not been walked through with VoiceOver.
+- **CI:** `.github/workflows/ci.yml` has not been run on this code.

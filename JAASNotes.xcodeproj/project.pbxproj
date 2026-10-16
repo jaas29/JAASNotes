@@ -63,6 +63,8 @@
 		B3484610C49AFA62AFC3E52A /* ArchiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C191DBA8CC1C3EA3D57ADAB0 /* ArchiveService.swift */; };
 		70E5602D13C3FA8A796216A1 /* ArchivePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCF90F7DC6D275D160AA162 /* ArchivePanels.swift */; };
 		D9DAF13D2AB51CF1FC2225D2 /* ArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43858C8EC50A1EA959B9A7DD /* ArchiveTests.swift */; };
+		7E531B14681A1ADAB1AD72EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE00D2F17330256F58B21572 /* Assets.xcassets */; };
+		0B63B6CB4574586EBEDCFE99 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 5C2855036C06F4788181F0AC /* AppIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -145,6 +147,8 @@
 		C191DBA8CC1C3EA3D57ADAB0 /* ArchiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveService.swift; sourceTree = "<group>"; };
 		EBCF90F7DC6D275D160AA162 /* ArchivePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePanels.swift; sourceTree = "<group>"; };
 		43858C8EC50A1EA959B9A7DD /* ArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveTests.swift; sourceTree = "<group>"; };
+		CE00D2F17330256F58B21572 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5C2855036C06F4788181F0AC /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -231,6 +235,8 @@
 		A1000000000000000000E008 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				5C2855036C06F4788181F0AC /* AppIcon.icns */,
+				CE00D2F17330256F58B21572 /* Assets.xcassets */,
 				A1000000000000000000F013 /* JAASNotes.entitlements */,
 			);
 			path = Resources;
@@ -431,6 +437,7 @@
 			buildConfigurationList = A1000000000000000000A061 /* Build configuration list for PBXNativeTarget "JAASNotes" */;
 			buildPhases = (
 				A1000000000000000000D040 /* Sources */,
+				9C1BE84DFC9053243F28CEB3 /* Resources */,
 				A1000000000000000000D041 /* Frameworks */,
 			);
 			buildRules = (
@@ -518,6 +525,18 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9C1BE84DFC9053243F28CEB3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B63B6CB4574586EBEDCFE99 /* AppIcon.icns in Resources */,
+				7E531B14681A1ADAB1AD72EF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A1000000000000000000D040 /* Sources */ = {
@@ -667,6 +686,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSET_CATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = JAASNotes/Resources/Info.plist;
 				CODE_SIGN_ENTITLEMENTS = JAASNotes/Resources/JAASNotes.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
@@ -693,6 +713,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSET_CATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = JAASNotes/Resources/Info.plist;
 				CODE_SIGN_ENTITLEMENTS = JAASNotes/Resources/JAASNotes.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
