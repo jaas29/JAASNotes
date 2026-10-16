@@ -5,7 +5,7 @@ import Foundation
 /// is saved to the persistent store before it returns. Callers receive value snapshots only.
 actor LibraryRepository: NoteStore {
     static let defaultFolderName = "Notes"
-    static let currentFormatVersion = 2
+    static let currentFormatVersion = 3
 
     private let context: NSManagedObjectContext
     private let now: @Sendable () -> Date
@@ -205,6 +205,10 @@ actor LibraryRepository: NoteStore {
             guard note.revision == expectedRevision else {
                 throw LibraryError.revisionConflict(id)
             }
+            // Plain text would drop the note's formatting, so a rich note is never saved through this path.
+            guard note.contentFormatVersion == 0 else {
+                throw LibraryError.richContentRequiresRichUpdate(id)
+            }
 
             let titleChanged = !Self.sameScalars(note.title, title)
             let bodyChanged = !Self.sameScalars(note.bodyPlainText, bodyPlainText)
@@ -215,6 +219,79 @@ actor LibraryRepository: NoteStore {
                 note.revision += 1
             }
             return try Self.snapshot(of: note)
+        }
+    }
+
+    /// The note's body as stored. A rich body is decoded and validated here; if it cannot be read, the result carries the
+    /// saved plain text as a fallback and the stored data is not changed.
+    func body(of id: UUID) async throws -> NoteBody {
+        try await read { context in
+            Self.readBody(of: try Self.fetchNote(id: id, in: context))
+        }
+    }
+
+    /// Saves formatted text and its checklist in one transaction, with the same revision check as `updateNote`.
+    /// Content is validated before anything is written. A note whose stored formatting cannot be read is refused,
+    /// so a damaged original is never replaced by a newer save.
+    func updateRichNote(id: UUID, expectedRevision: Int64, title: String, content: RichNoteContent) async throws -> NoteSnapshot {
+        try RichTextCodec.validate(content)
+        let checklistData = try content.checklist.map(RichTextCodec.encodeChecklist)
+        return try await write { context, now in
+            let note = try Self.fetchNote(id: id, in: context)
+            guard note.revision == expectedRevision else {
+                throw LibraryError.revisionConflict(id)
+            }
+            if note.contentFormatVersion != 0 {
+                guard case .rich = Self.readBody(of: note) else {
+                    throw LibraryError.richContentUnreadable(id)
+                }
+            }
+
+            let changed = !Self.sameScalars(note.title, title)
+                || !Self.sameScalars(note.bodyPlainText, content.plainText)
+                || note.contentFormatVersion != Int32(RichNoteContent.formatVersion)
+                || note.richTextData != content.rtf
+                || note.checklistData != checklistData
+            if changed {
+                note.title = title
+                note.bodyPlainText = content.plainText
+                note.contentFormatVersion = Int32(RichNoteContent.formatVersion)
+                note.richTextData = content.rtf
+                note.checklistData = checklistData
+                note.modifiedAt = now
+                note.revision += 1
+            }
+            return try Self.snapshot(of: note)
+        }
+    }
+
+    /// Creates a new plain-text note in the same folder from an unreadable note's saved text. The original is not changed.
+    /// Only unreadable notes can be copied this way; a note that opens normally is edited in place instead.
+    func makeRecoveryCopy(of id: UUID) async throws -> NoteSnapshot {
+        try await write { context, now in
+            let original = try Self.fetchNote(id: id, in: context)
+            guard case .unreadable(let fallbackText, _) = Self.readBody(of: original) else {
+                throw LibraryError.recoveryCopyNotNeeded(id)
+            }
+            guard let folder = original.folder else {
+                throw LibraryError.libraryInconsistent("A note is missing its folder.")
+            }
+
+            let copy = Self.insert(NoteRecord.self, entity: "Note", in: context)
+            copy.id = UUID()
+            let originalTitle = original.title.isEmpty ? "Untitled Note" : original.title
+            copy.title = "\(originalTitle) (Recovered)"
+            copy.bodyPlainText = fallbackText
+            copy.createdAt = now
+            copy.modifiedAt = now
+            copy.deletedAt = nil
+            copy.revision = 1
+            copy.isPinned = false
+            copy.contentFormatVersion = 0
+            copy.richTextData = nil
+            copy.checklistData = nil
+            copy.folder = folder
+            return try Self.snapshot(of: copy)
         }
     }
 
@@ -426,6 +503,29 @@ actor LibraryRepository: NoteStore {
         lhs.unicodeScalars.elementsEqual(rhs.unicodeScalars)
     }
 
+    /// Reads a note's body without changing anything. A rich body that fails validation becomes `.unreadable`.
+    private static func readBody(of note: NoteRecord) -> NoteBody {
+        switch note.contentFormatVersion {
+        case 0:
+            return .plain(note.bodyPlainText)
+        case Int32(RichNoteContent.formatVersion):
+            guard let rtf = note.richTextData else {
+                return .unreadable(fallbackText: note.bodyPlainText, reason: "The formatting data is missing.")
+            }
+            do {
+                return .rich(try RichTextCodec.content(rtf: rtf, checklistData: note.checklistData))
+            } catch {
+                return .unreadable(fallbackText: note.bodyPlainText, reason: (error as? RichContentError).map { $0.localizedDescription } ?? "The formatting could not be read.")
+            }
+        default:
+            let format = Int(note.contentFormatVersion)
+            return .unreadable(
+                fallbackText: note.bodyPlainText,
+                reason: RichContentError.unsupportedContentFormat(format).localizedDescription
+            )
+        }
+    }
+
     private static func snapshot(of record: NoteRecord) throws -> NoteSnapshot {
         guard let folderID = record.folder?.id else {
             throw LibraryError.libraryInconsistent("A note is missing its folder.")
@@ -439,7 +539,8 @@ actor LibraryRepository: NoteStore {
             modifiedAt: record.modifiedAt,
             deletedAt: record.deletedAt,
             revision: record.revision,
-            isPinned: record.isPinned
+            isPinned: record.isPinned,
+            hasRichContent: record.contentFormatVersion != 0
         )
     }
 }

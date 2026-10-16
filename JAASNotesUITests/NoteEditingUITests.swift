@@ -455,3 +455,65 @@ final class PendingSaveKillUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The acknowledged save must still be there.")
     }
 }
+
+final class FormatUITests: XCTestCase {
+    private let libraryName = UUID().uuidString
+
+    @MainActor
+    func testFormatMenuOffersTheTextCommands() throws {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+
+        app.menuBarItems["Format"].click()
+
+        for item in ["Bold", "Italic", "Underline", "Heading 1", "Heading 2", "Heading 3", "Body Text", "Bulleted List"] {
+            XCTAssertTrue(app.menuItems[item].exists, "The Format menu should offer \(item).")
+        }
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
+    @MainActor
+    func testChecklistIsAddedAndCheckedFromTheKeyboard() throws {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+
+        app.buttons["New Note"].firstMatch.click()
+        let body = app.textViews["noteBody"]
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        body.click()
+        body.typeText("Milk")
+
+        app.typeKey("c", modifierFlags: [.command, .shift])
+        let box = app.checkBoxes["checklistItem"].firstMatch
+        XCTAssertTrue(box.waitForExistence(timeout: 5), "Checklist should add a checkbox for the paragraph.")
+        XCTAssertEqual(box.value as? Int, 0, "A new item starts unchecked.")
+
+        // Checkbox values are numbers (0 or 1), so the predicate compares numerically.
+        app.typeKey(.return, modifierFlags: [.command, .shift])
+        let checked = NSPredicate(format: "value == 1")
+        expectation(for: checked, evaluatedWith: box)
+        waitForExpectations(timeout: 5)
+    }
+
+    @MainActor
+    func testChecklistLayoutScreenshot() throws {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+
+        app.buttons["New Note"].firstMatch.click()
+        let body = app.textViews["noteBody"]
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        body.click()
+        body.typeText("Buy milk\nEggs and a much longer line of checklist text that should wrap onto a second line\nBread")
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey("c", modifierFlags: [.command, .shift])
+        XCTAssertTrue(app.checkBoxes["checklistItem"].firstMatch.waitForExistence(timeout: 5))
+        app.checkBoxes.matching(identifier: "checklistItem").element(boundBy: 1).click()
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.5))
+
+        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        attachment.name = "checklist-layout"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+}

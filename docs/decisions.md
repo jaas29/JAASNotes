@@ -128,3 +128,63 @@ Architecture choices and approved changes. Entries are added as decisions are ma
 
 - **Decision:** permanent deletion and Empty Recently Deleted take a `preDeletion` backup first. If the backup fails, nothing is deleted and the message says so. The repository refuses to delete a note that is not in Recently Deleted. Folder removal moves notes to Notes and does not require a backup, because nothing is erased.
 - **Why:** the plan requires a verified backup before permanent deletion.
+
+## D-020 — Version 3 adds rich body fields; the plain-text column stays the search text
+
+- **Date:** 2026-10-16
+- **Decision:** `JAASNotes 3.xcdatamodel` adds `Note.contentFormatVersion` (0 = plain, 1 = rich), `richTextData` (RTF), and `checklistData` (JSON sidecar). `bodyPlainText` is kept and holds the text derived from the RTF. Search, previews, and the legacy reader read it. The payloads are ordinary attributes, not external binary storage.
+- **Why:** external binary storage keeps large values in a sibling folder that a Store.sqlite-only copy would miss, so backups would be incomplete. Keeping `bodyPlainText` means list rows and search never decode RTF.
+- **Consequence:** a rich note's search text is refreshed on every rich save. Version 3 is not released; a released version would need a new model version instead.
+
+## D-021 — Rich bodies are stored in precomposed (NFC) form
+
+- **Decision:** `RichTextCodec.content(from:checklist:)` derives the stored text from the RTF it writes. Because RTF stores precomposed text, combining sequences become single characters. Checklist ranges are remapped to the same paragraph in the stored text.
+- **Why:** the RTF writer does this itself. The probe showed `e` plus U+0301 comes back as U+00E9. Refusing such text would block ordinary typing, and keeping decomposed text would need a custom RTF encoder.
+- **Consequence:** the first rich save of a plain note can change its combining sequences. The text looks the same. The plan's lossless rule is kept for plain notes and for every other character (emoji, CJK, RTL, and all control characters round-trip). Tests compare Unicode scalars, not `String ==`, which treats canonically equivalent text as equal.
+
+## D-022 — Plain-text saves never discard formatting; damaged formatting is never overwritten
+
+- **Decision:**
+  - `updateNote` refuses any note with `contentFormatVersion != 0` (`richContentRequiresRichUpdate`).
+  - `updateRichNote` refuses a note whose stored formatting cannot be read (`richContentUnreadable`).
+  - `body(of:)` reports damaged formatting as `.unreadable(fallbackText:reason:)` and changes nothing.
+  - `makeRecoveryCopy(of:)` creates a new plain note in the same folder from the fallback text. The original is not changed.
+- **Why:** the plan requires that unsupported or corrupt rich data never overwrite the stored original. A plain save would silently drop formatting.
+- **Consequence:** no UI calls these paths yet (03-02 wires the editor). A recovery copy is only offered for unreadable notes, never for notes that open normally.
+
+## D-023 — Upgrades accept any prior version, not only version 1
+
+- **Decision:** `LibraryMigrationService.priorModelNames` lists `JAASNotes 2` and `JAASNotes`. The source model found by compatibility check is used for the pre-upgrade backup, the upgrade, and the row comparison. The version-1-only pin check is removed; the row comparison already covers pins.
+- **Why:** once version 3 is current, a version-2 library would otherwise be refused as foreign. Version 2 was written by the owner's Stage 2 builds, so it must upgrade.
+- **Consequence:** the version-2 fixture is generated in the test from the version-2 model, not embedded. Its schema is the same, but a real library written by the owner's Stage 2 build has not been tested here.
+
+## D-024 — Formatting is applied through the text view's own actions; a plain note becomes formatted on its first command
+
+- **Decision:**
+  - Bold, italic, underline, headings (size and bold), and bulleted lists are `NoteTextView` actions reached through the Format menu. Every action registers undo through `shouldChangeText` and `didChangeText`.
+  - A plain note stays plain until a formatting command runs on it. Typing and pasting into a plain note keep it plain, because the view is not rich until then.
+  - Headings are font size and weight, not a semantic heading attribute. Bullets are `NSTextList` paragraph styles.
+  - Edits to a formatted note are refused until its body has loaded, and to any note whose formatting cannot be read.
+- **Why:** the native text system gives undo, input methods, and selection behavior for free. Keeping plain notes plain means a paste cannot add formatting that a plain save would silently drop.
+- **Consequence:** a heading in another app's RTF is not recognized as a heading here. Only what the Format menu creates is a heading. Recovery copies and the portable export of unsaved drafts carry plain text only.
+
+## D-025 — Checklist items follow paragraphs, and every edit rule is a pure function
+
+- **Decision:** `ChecklistEditing.apply` maps an edit (range and replacement) to the new checklist. Items are matched to paragraphs by paragraph index, not by stored offsets.
+  - Typing, deleting, and pasting inside an item keep its ID and checked state.
+  - Return or a paste with line breaks inside an item keeps the identity on the part that keeps the item's text. Each new line after the break is a new, unchecked item.
+  - Joining two paragraphs keeps the first one's identity if it is an item. The second item is removed.
+  - Deleting a whole item removes it. Its text goes with it, and the next item keeps its identity.
+  - A break at the start of an item leaves a new, unchecked item above, and the original item keeps its text and state below.
+- **Why:** a pure function can be tested for every rule without a view, and the editor and the tests share one definition. Matching by paragraph, not by stored offset, means positions are recomputed from the text.
+- **Consequence:** joining an item with a plain paragraph before it removes the item. This is the rule, not a loss of data: the item's text stays in the joined paragraph.
+
+## D-026 — Checkboxes are views beside each item, not characters; undo covers both text and checklist
+
+- **Decision:**
+  - Each checklist item has an `NSButton` checkbox positioned at its paragraph's first line. Checklist paragraphs have a 24-point left indent, so boxes never cover text. The checkboxes are listed in the text view's accessibility children, so VoiceOver and the keyboard can reach them.
+  - Checklist state is never written into the RTF. The sidecar holds it (D-020).
+  - Each text edit that changes the checklist registers a checklist undo step alongside the text's own undo step. Undo and redo restore both, and while the text system is undoing, the checklist is not recalculated from the edit.
+  - Commands: Format > Checklist (Shift-Cmd-C) adds or removes items on the selected paragraphs. Format > Check or Uncheck Item (Shift-Cmd-Return) toggles the paragraph at the insertion point.
+- **Why:** the RTF writer does not keep custom attributes (D-020), and drawn characters are not controls. A real control gives a state value and a label to assistive technology.
+- **Consequence:** the checkbox layout is measured from the text layout. It was checked in a screenshot, not on every macOS release or with other text sizes. Bullet lists and checklists on the same paragraph are not supported. The checklist indent overrides the bullet indent.

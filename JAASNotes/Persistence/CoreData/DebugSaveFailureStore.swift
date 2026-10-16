@@ -14,6 +14,18 @@ actor DebugSaveFailureStore: NoteStore {
         throw LibraryError.saveFailed("Writes are disabled for this test run.")
     }
 
+    func updateRichNote(id: UUID, expectedRevision: Int64, title: String, content: RichNoteContent) async throws -> NoteSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func makeRecoveryCopy(of id: UUID) async throws -> NoteSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func body(of id: UUID) async throws -> NoteBody {
+        try await base.body(of: id)
+    }
+
     func initializeLibraryIfNeeded() async throws -> LibraryMetadataSnapshot {
         try await base.initializeLibraryIfNeeded()
     }

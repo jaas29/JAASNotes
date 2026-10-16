@@ -104,6 +104,61 @@ struct JAASNotesApp: App {
                 .disabled(model.phase != .ready)
             }
 
+            CommandMenu("Format") {
+                Button("Bold") {
+                    NSApp.sendAction(#selector(NoteTextView.toggleBold(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("b", modifiers: .command)
+
+                Button("Italic") {
+                    NSApp.sendAction(#selector(NoteTextView.toggleItalic(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("i", modifiers: .command)
+
+                Button("Underline") {
+                    NSApp.sendAction(#selector(NoteTextView.toggleUnderline(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("u", modifiers: .command)
+
+                Divider()
+
+                Button("Heading 1") {
+                    NSApp.sendAction(#selector(NoteTextView.applyHeading1(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+
+                Button("Heading 2") {
+                    NSApp.sendAction(#selector(NoteTextView.applyHeading2(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("2", modifiers: [.command, .option])
+
+                Button("Heading 3") {
+                    NSApp.sendAction(#selector(NoteTextView.applyHeading3(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("3", modifiers: [.command, .option])
+
+                Button("Body Text") {
+                    NSApp.sendAction(#selector(NoteTextView.applyBodyText(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("0", modifiers: [.command, .option])
+
+                Divider()
+
+                Button("Bulleted List") {
+                    NSApp.sendAction(#selector(NoteTextView.toggleBulletList(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+
+                Button("Checklist") {
+                    NSApp.sendAction(#selector(NoteTextView.toggleChecklist(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
+
+                Button("Check or Uncheck Item") {
+                    NSApp.sendAction(#selector(NoteTextView.toggleCheckedItem(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut(.return, modifiers: [.command, .shift])
+            }
             CommandGroup(after: .sidebar) {
                 Menu("Sort Notes By") {
                     ForEach(NoteSortOrder.allCases, id: \.self) { order in

@@ -7,6 +7,12 @@ protocol NoteStore: Sendable {
     func activeNotes(inFolder folderID: UUID?) async throws -> [NoteSnapshot]
     func createNote(inFolder folderID: UUID, title: String, bodyPlainText: String) async throws -> NoteSnapshot
     func updateNote(id: UUID, expectedRevision: Int64, title: String, bodyPlainText: String) async throws -> NoteSnapshot
+    /// The note's body as stored. Damaged formatting is reported with the saved text; nothing is changed.
+    func body(of id: UUID) async throws -> NoteBody
+    /// Saves formatted text and its checklist with the same revision rule as `updateNote`.
+    func updateRichNote(id: UUID, expectedRevision: Int64, title: String, content: RichNoteContent) async throws -> NoteSnapshot
+    /// Creates a plain-text note from an unreadable note's saved text, in the same folder. The original is not changed.
+    func makeRecoveryCopy(of id: UUID) async throws -> NoteSnapshot
     /// Active notes whose title or body contains `query` literally, ignoring case and diacritics.
     func searchActiveNotes(matching query: String) async throws -> [NoteSnapshot]
     /// Moves an active note to Recently Deleted. Content, folder, and `modifiedAt` are kept.

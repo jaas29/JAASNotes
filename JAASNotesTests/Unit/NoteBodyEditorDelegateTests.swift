@@ -3,11 +3,11 @@ import XCTest
 @testable import JAASNotes
 
 @MainActor
-final class PlainTextEditorDelegateTests: XCTestCase {
+final class NoteBodyEditorDelegateTests: XCTestCase {
     private let noRange = NSRange(location: NSNotFound, length: 0)
 
-    private func makeTextView(reporting reported: @escaping (String) -> Void) -> (NSTextView, PlainTextEditorDelegate) {
-        let delegate = PlainTextEditorDelegate(onChange: reported)
+    private func makeTextView(reporting reported: @escaping (String) -> Void) -> (NSTextView, NoteBodyEditorDelegate) {
+        let delegate = NoteBodyEditorDelegate(onPlainChange: reported)
         let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
         textView.isRichText = false
         textView.allowsUndo = true

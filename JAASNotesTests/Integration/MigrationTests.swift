@@ -94,4 +94,76 @@ final class MigrationTests: XCTestCase {
         XCTAssertFalse(upgraded)
         XCTAssertEqual(try LibraryBackupService.list(in: location).filter { $0.kind == .preMigration }.count, 0)
     }
+
+    /// Writes a version-2 library with the version-2 model itself: a pinned note, a trashed note, and Unicode text.
+    private func installVersionTwoLibrary(_ location: LibraryLocation) throws -> (pinnedID: UUID, trashedID: UUID) {
+        try FileManager.default.createDirectory(at: location.libraryDirectoryURL, withIntermediateDirectories: true)
+        let model = try CoreDataStack.model(named: "JAASNotes 2")
+        let container = NSPersistentContainer(name: "JAASNotes", managedObjectModel: model)
+        let description = NSPersistentStoreDescription(url: location.storeURL)
+        description.type = NSSQLiteStoreType
+        container.persistentStoreDescriptions = [description]
+        var loadError: Error?
+        container.loadPersistentStores { _, error in loadError = error }
+        XCTAssertNil(loadError)
+
+        let context = container.viewContext
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let metadata = NSEntityDescription.insertNewObject(forEntityName: "LibraryMetadata", into: context)
+        metadata.setValue(UUID(), forKey: "libraryID")
+        metadata.setValue(date, forKey: "createdAt")
+        metadata.setValue(Int32(2), forKey: "formatVersion")
+
+        let folder = NSEntityDescription.insertNewObject(forEntityName: "Folder", into: context)
+        let folderID = UUID()
+        folder.setValue(folderID, forKey: "id")
+        folder.setValue("Notes", forKey: "name")
+        folder.setValue("notes", forKey: "normalizedName")
+        folder.setValue(date, forKey: "createdAt")
+        folder.setValue(date, forKey: "modifiedAt")
+        folder.setValue(true, forKey: "isDefault")
+
+        func note(_ id: UUID, title: String, body: String, pinned: Bool, deletedAt: Date?) {
+            let record = NSEntityDescription.insertNewObject(forEntityName: "Note", into: context)
+            record.setValue(id, forKey: "id")
+            record.setValue(title, forKey: "title")
+            record.setValue(body, forKey: "bodyPlainText")
+            record.setValue(date, forKey: "createdAt")
+            record.setValue(date, forKey: "modifiedAt")
+            record.setValue(deletedAt, forKey: "deletedAt")
+            record.setValue(Int64(3), forKey: "revision")
+            record.setValue(pinned, forKey: "isPinned")
+            record.setValue(folder, forKey: "folder")
+        }
+        let pinnedID = UUID()
+        let trashedID = UUID()
+        note(pinnedID, title: "Pinned ✓", body: "Body 日本語 🧪\nSecond line", pinned: true, deletedAt: nil)
+        note(trashedID, title: "Trashed", body: "Gone", pinned: false, deletedAt: date)
+        try context.save()
+        try CoreDataStack.close(container)
+        return (pinnedID, trashedID)
+    }
+
+    func testVersionTwoLibraryUpgradesWithPinsAndTextUnchanged() async throws {
+        let location = makeLocation()
+        let ids = try installVersionTwoLibrary(location)
+
+        let upgraded = try await LibraryMigrationService.migrateIfNeeded(location)
+
+        XCTAssertTrue(upgraded)
+        let container = try await CoreDataStack.openContainer(at: location)
+        defer { try? CoreDataStack.close(container) }
+        let repository = LibraryRepository(container: container)
+        let value1 = try await repository.libraryMetadata()?.formatVersion
+        XCTAssertEqual(value1, LibraryRepository.currentFormatVersion)
+        let active = try await repository.activeNotes(inFolder: nil)
+        let pinned = try XCTUnwrap(active.first { $0.id == ids.pinnedID })
+        XCTAssertTrue(pinned.isPinned, "Pins from version 2 are kept.")
+        XCTAssertEqual(pinned.title, "Pinned ✓")
+        XCTAssertEqual(pinned.bodyPlainText, "Body 日本語 🧪\nSecond line")
+        XCTAssertEqual(pinned.revision, 3)
+        XCTAssertFalse(pinned.hasRichContent, "Upgrading does not convert any note to rich text.")
+        let value2 = try await repository.deletedNotes().map(\.id)
+        XCTAssertEqual(value2, [ids.trashedID], "Recently Deleted survives the upgrade.")
+    }
 }

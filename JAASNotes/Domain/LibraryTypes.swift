@@ -25,6 +25,8 @@ struct NoteSnapshot: Equatable, Sendable, Identifiable {
     let deletedAt: Date?
     let revision: Int64
     let isPinned: Bool
+    /// True when the note has a rich body (RTF and checklist). Plain notes are false. Opening a note checks the rich data.
+    var hasRichContent: Bool = false
 }
 
 extension NoteSnapshot {
@@ -61,6 +63,9 @@ enum LibraryError: Error, Equatable, Sendable {
     case libraryInconsistent(String)
     case storeLoadFailed(String)
     case saveFailed(String)
+    case richContentRequiresRichUpdate(UUID)
+    case richContentUnreadable(UUID)
+    case recoveryCopyNotNeeded(UUID)
 }
 
 extension LibraryError: LocalizedError {
@@ -91,6 +96,12 @@ extension LibraryError: LocalizedError {
             "The library database could not be opened."
         case .saveFailed:
             "Your changes could not be saved."
+        case .richContentRequiresRichUpdate:
+            "This note has formatting, so plain text cannot replace it. Your text was not saved."
+        case .richContentUnreadable:
+            "This note's formatting could not be read, so it was not changed. Make a recovery copy to keep its text."
+        case .recoveryCopyNotNeeded:
+            "This note opens normally, so no recovery copy is needed."
         }
     }
 }

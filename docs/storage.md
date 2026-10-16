@@ -12,8 +12,14 @@ Application Support/JAASNotes/          (sandbox container; tests use a temporar
 
 ## Schema
 
-- Version 1 only (`LibraryMetadata`, `Folder`, `Note`). Field definitions are in `AGENTS.md` §5.
-- Automatic migration is disabled. A store is only opened after its metadata matches the bundled model (`CoreDataStack.checkCompatibility`); a file without Core Data's `Z_METADATA` table is refused before any write.
+- Current model: version 3 (`JAASNotes 3.xcdatamodel`, set in `.xccurrentversion`). Versions 1 and 2 are kept as prior models.
+  - `LibraryMetadata`, `Folder`: unchanged since version 1.
+  - `Note`: `isPinned` (version 2); `contentFormatVersion`, `richTextData`, `checklistData` (version 3).
+- `contentFormatVersion` is 0 for plain-text notes and 1 for notes with a rich body. A rich note keeps its plain text in `bodyPlainText`, which search and previews read.
+- `richTextData` is RTF, limited to 16 MiB and to text and formatting (no attachments). `checklistData` is a versioned JSON sidecar of items: stable UUID, checked state, and a UTF-16 paragraph range in the plain text. Both are ordinary attributes, not external binary storage, so a backup's copy of `Store.sqlite` contains them.
+- Upgrades run only from a known prior version (`LibraryMigrationService.priorModelNames`). A store that matches neither the current model nor a prior one is refused before any write.
+- Upgrades do not convert notes to rich text. A note becomes rich on its first rich save.
+- A store is only opened after its metadata matches the bundled model (`CoreDataStack.checkCompatibility`); a file without Core Data's `Z_METADATA` table is refused before any write.
 
 ## Snapshot procedure
 
@@ -44,4 +50,5 @@ If step 4–5 fails, the code rolls back. If the process dies, `recoverInterrupt
 
 - Snapshots copy a closed store; the library is unavailable for that short copy.
 - `Recovery/` is never pruned automatically.
-- Attachments, rich text, and archives are not part of the store yet (Stages 3–4).
+- Attachments and archives are not part of the store yet (Stage 4). Inline pictures and files are refused before a save, because RTF writing would otherwise drop them silently.
+- Rich text is stored in precomposed (NFC) form. RTF round trips do not keep decomposed sequences (for example `e` plus a combining acute), so a note's first rich save may change those sequences to their precomposed form. The text looks the same. Checklist ranges move with their paragraphs.

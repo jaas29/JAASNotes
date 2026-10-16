@@ -1,7 +1,7 @@
 import CoreData
 import Foundation
 
-/// Upgrades a library written by version 1 of the model. The original is backed up first. The upgrade runs on a copy,
+/// Upgrades a library written by an earlier version of the model. The original is backed up first. The upgrade runs on a copy,
 /// the copy's contents must match the original exactly, and only then is it installed with the same recoverable swap
 /// that restores use. The original is never modified in place.
 enum LibraryMigrationService {
@@ -10,11 +10,11 @@ enum LibraryMigrationService {
         case afterUpgrade
     }
 
-    /// The version-1 model file inside the compiled model bundle.
-    static let versionOneModelName = "JAASNotes"
+    /// Earlier model versions this app can upgrade from, newest first. Each is a compiled model in the bundle.
+    static let priorModelNames = ["JAASNotes 2", "JAASNotes"]
 
-    /// Upgrades the library at `location` when it was written by version 1. Returns true when an upgrade happened.
-    /// A store that matches neither the current model nor version 1 is refused and left unchanged.
+    /// Upgrades the library at `location` when it was written by an earlier version. Returns true when an upgrade happened.
+    /// A store that matches neither the current model nor a prior version is refused and left unchanged.
     @discardableResult
     static func migrateIfNeeded(_ location: LibraryLocation, takeBackup: Bool = true, fault: Fault? = nil) async throws -> Bool {
         let storeURL = location.storeURL
@@ -24,8 +24,15 @@ enum LibraryMigrationService {
         if try CoreDataStack.isCompatible(storeURL, with: current) {
             return false
         }
-        let legacy = try CoreDataStack.model(named: versionOneModelName)
-        guard try CoreDataStack.isCompatible(storeURL, with: legacy) else {
+        var matched: NSManagedObjectModel?
+        for name in priorModelNames {
+            let candidate = try CoreDataStack.model(named: name)
+            if try CoreDataStack.isCompatible(storeURL, with: candidate) {
+                matched = candidate
+                break
+            }
+        }
+        guard let legacy = matched else {
             throw LibraryError.storeLoadFailed(
                 "This library was written by a different version of JAASNotes, or it is not a JAASNotes library. It was not changed."
             )
@@ -63,9 +70,6 @@ enum LibraryMigrationService {
             let after = try contents(of: candidateStore, model: current)
             guard before == after else {
                 throw LibraryBackupError.validationFailed("The upgraded copy does not match the original, so it was not used.")
-            }
-            guard after.notes.allSatisfy({ !$0.isPinned }) else {
-                throw LibraryBackupError.validationFailed("The upgrade produced unexpected pinned notes.")
             }
 
             if fault == .afterUpgrade {

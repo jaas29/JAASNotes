@@ -32,5 +32,11 @@ final class NoteRecord: NSManagedObject {
     @NSManaged var revision: Int64
     /// Added in version 2. Existing version-1 notes migrate with `false`.
     @NSManaged var isPinned: Bool
+    /// Added in version 3. 0 means plain text only; `RichNoteContent.formatVersion` means RTF and checklist data are present.
+    @NSManaged var contentFormatVersion: Int32
+    /// Added in version 3. RTF for the body, validated by `RichTextCodec` before it is stored.
+    @NSManaged var richTextData: Data?
+    /// Added in version 3. Versioned checklist sidecar, or nil when the note has no checklist.
+    @NSManaged var checklistData: Data?
     @NSManaged var folder: FolderRecord?
 }

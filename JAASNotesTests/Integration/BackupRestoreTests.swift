@@ -1,3 +1,4 @@
+import AppKit
 import CoreData
 import CryptoKit
 import SQLite3
@@ -415,5 +416,31 @@ final class BackupRestoreTests: XCTestCase {
         XCTAssertTrue(model.backups.contains { $0.kind == .preRestore }, "The current library is backed up before a restore.")
         XCTAssertEqual(model.phase, .ready)
         XCTAssertFalse(model.hasUnsavedChanges, "Drafts were replaced by the restored library.")
+    }
+
+    func testRichNoteWithChecklistSurvivesSnapshotAndRestore() async throws {
+        let source = makeLocation("rich-source")
+        let text = NSMutableAttributedString(string: "Packing 🧳\nSocks 日本\nPassport")
+        text.addAttribute(.font, value: NSFont.boldSystemFont(ofSize: 13), range: NSRange(location: 0, length: 7))
+        let itemID = UUID()
+        let checklist = ChecklistSidecar(items: [ChecklistItem(id: itemID, isChecked: true, location: 11, length: 8)])
+        let content = try RichTextCodec.content(from: text, checklist: checklist)
+
+        let container = try await CoreDataStack.openContainer(at: source)
+        let repository = LibraryRepository(container: container)
+        _ = try await repository.initializeLibraryIfNeeded()
+        let folderID = try await repository.folders()[0].id
+        let plain = try await repository.createNote(inFolder: folderID, title: "Trip", bodyPlainText: "")
+        _ = try await repository.updateRichNote(id: plain.id, expectedRevision: plain.revision, title: "Trip", content: content)
+        try CoreDataStack.close(container)
+
+        let backup = try await snapshot(source)
+        let fresh = makeLocation("rich-fresh")
+        try await LibraryRestoreService.restore(backup, into: fresh)
+
+        let restored = try await CoreDataStack.openContainer(at: fresh)
+        defer { try? CoreDataStack.close(restored) }
+        let body = try await LibraryRepository(container: restored).body(of: plain.id)
+        XCTAssertEqual(body, .rich(content))
     }
 }

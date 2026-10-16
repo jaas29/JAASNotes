@@ -118,7 +118,7 @@ enum LibraryBackupService {
     // MARK: - Creating snapshots
 
     /// Copies a closed library into a validated backup package. The caller must have closed the live store first.
-    /// `legacyModel` is set only for the pre-upgrade snapshot of a version-1 library, which the current model cannot open.
+    /// `legacyModel` is set only for the pre-upgrade snapshot of an earlier library, which the current model cannot open.
     static func createSnapshot(
         of location: LibraryLocation,
         kind: BackupKind,

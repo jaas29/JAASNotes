@@ -502,3 +502,175 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - Full suite passes: all unit, integration, and UI tests, including the migration, organization, and Stage 1 tests.
 - **Owner check:** keyboard and VoiceOver passes on the new Stage 2 controls (Sort menu, pin shortcut, Settings window, folder and permanent-deletion dialogs) reported passed. No automated UI test covers them yet.
 - **Not yet recorded:** Settings window appearance in light and dark mode.
+
+## 03-01 — Version 3: RTF and checklist serialization, plain-text derivation, validation
+
+- **Status:** COMPLETE for the isolated serialization, validation, migration, and repository rules. No UI uses rich text yet (03-02).
+- **Date:** 2026-10-16
+- **Commit:** not committed yet
+
+### Changes
+
+- **Model:** `JAASNotes 3.xcdatamodel` (current) adds `Note.contentFormatVersion`, `richTextData`, `checklistData`. Version 1 and 2 models are unchanged.
+- **Domain:** `RichNoteContent`, `ChecklistSidecar` / `ChecklistItem` (versioned, stable UUIDs, UTF-16 paragraph ranges), `NoteBody` (`plain`, `rich`, `unreadable`), and `RichContentError` (messages never include note text).
+- **Codec:** `RichTextCodec`: RTF in and out, 16 MiB cap, inline attachments refused on input and on read, plain text derived from the decoded RTF, line breaks normalized, checklist validation. Checklist ranges are remapped to the stored (NFC) text.
+- **Repository:** `body(of:)`, `updateRichNote(id:expectedRevision:title:content:)`, `makeRecoveryCopy(of:)`. `updateNote` refuses rich notes. `currentFormatVersion` is 3.
+- **Migration:** accepts version 2 as well as version 1 (D-023). Version 2 libraries upgrade without changing IDs, text, pins, or Recently Deleted.
+- **Project:** `RichNoteContent.swift`, `RichTextCodec.swift` added to the app target; three test files added to the test targets.
+
+### Commands
+
+```sh
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/<new>.xcresult -only-testing:JAASNotesTests test
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/<new>.xcresult -test-timeouts-enabled YES -default-test-execution-time-allowance 90 test
+```
+
+### Environment
+
+- Xcode 26.3 (Swift 5 language mode), macOS 26.6.2, Apple M3 Pro (the Stage 1 and 2 environment). macOS 14 runtime not tested.
+
+### Results
+
+- Unit + integration: 145 tests pass (118 before this substage, plus 27 new).
+- Full suite including UI tests: 145 unit/integration and 16 UI tests pass.
+- New unit tests (`RichTextCodecTests`): Unicode round trip in NFC (emoji, ZWJ sequences, CJK, Arabic, Hebrew, RTF control words, braces, tabs); bold, italic, and underline survive; mixed line breaks normalize; non-RTF and empty data refused; oversized data refused before parsing; inline attachments refused on input; stored text must match the RTF; checklist ranges that are not whole paragraphs, overlap, are out of order, duplicate IDs, or cross a line break are refused; empty paragraphs can be items; checklist versions from the future are refused; damaged checklist JSON refused; checklist identity and state round trip; NFD input is stored precomposed with checklist ranges remapped.
+- New integration tests (`RichNoteRepositoryTests`): a plain note becomes rich on first save and survives reopen with checklist identity; an identical save is not a revision; a stale save is refused and changes nothing; a plain save cannot discard formatting; search matches visible text, not RTF control words; damaged RTF, damaged checklist JSON, and a future format are reported with the saved text as fallback and their bytes stay identical after refused saves; a recovery copy keeps the text, lives in the same folder, and leaves the original alone; a recovery copy is refused for a note that opens normally.
+- Migration (`MigrationTests`): a generated version-2 library (pinned and trashed notes, Unicode text) upgrades to version 3 with pins, revisions, and text unchanged, and no note converted to rich text.
+- Backup (`BackupRestoreTests`): a rich note with checklist survives snapshot and restore into a fresh library.
+
+### Bugs found during this substage
+
+1. A checklist range could span a line break and still validate. Fixed: a range containing a line feed is refused.
+2. RTF round trip changed `e` + combining acute to precomposed `é`. The string `==` comparison hid it. Fixed: NFC storage and paragraph remapping (D-021); tests compare scalars.
+3. Inline attachments were dropped by the RTF writer without an error. Fixed: refused on input (D-020).
+
+### Remaining gaps and risks
+
+- The version-2 fixture is built in the test. A library written by the owner's Stage 2 build has not been opened by this version.
+- Rich editing, formatting commands, and checklist controls do not exist yet. Stage 3 exit gate is not met.
+- The migration's row comparison does not compare rich fields. For version 2 sources these are always empty, so the check is complete for upgrades from prior versions, but a future rich-to-rich migration will need it extended.
+- A stale context can serve old values if another process writes the store. JAASNotes is the only writer, so this is documented, not handled.
+
+## 03-02 — Basic rich text: formatting commands, Format menu, undo, saves
+
+- **Status:** COMPLETE for the recorded automated evidence. Manual VoiceOver and keyboard checks of the new controls are not yet done (see remaining gaps).
+- **Date:** 2026-10-16
+- **Commit:** not committed yet
+
+### Changes
+
+- **Editor:** `PlainTextEditor` is now `NoteBodyEditor` (`Features/Editor/NoteBodyEditor.swift`). `NoteTextView` provides `toggleBold`, `toggleItalic`, `toggleUnderline`, `applyHeading1…3`, `applyBodyText`, and `toggleBulletList`. The first command on a plain note calls `onRichTextRequested`.
+- **Synchronization:** `NoteBodyEditor.synchronize` replaces text only when the model's body differs, so selection and undo survive saves.
+- **Model:** `Draft` gains `rich` (a formatted body with its checklist). `updateDraft(rich:)`, `prepareBody(for:)`, `bodyState(for:)` (loading, ready, unreadable), `makeRecoveryCopy(for:)`. Flushes use `updateRichNote` for formatted drafts and `updateNote` for plain drafts. Edits to a note that is not ready are ignored.
+- **Editor UI:** a loading indicator while a formatted body loads. Unreadable formatting shows a banner with Make Recovery Copy, and the saved text is read-only.
+- **Menu:** Format menu with Bold (Cmd-B), Italic (Cmd-I), Underline (Cmd-U), Heading 1–3 (Option-Cmd-1…3), Body Text (Option-Cmd-0), and Bulleted List (Shift-Cmd-L).
+- **Protocol:** `NoteStore` gains `body(of:)`, `updateRichNote`, `makeRecoveryCopy`. The debug failure wrapper and the test fault-injection store forward them.
+- **Renames:** `PlainTextEditor.swift` → `NoteBodyEditor.swift`, `PlainTextEditorDelegateTests.swift` → `NoteBodyEditorDelegateTests.swift`.
+
+### Commands
+
+```sh
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/<new>.xcresult -only-testing:JAASNotesTests test
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/<new>.xcresult -only-testing:JAASNotesUITests/FormatUITests test
+```
+
+### Results
+
+- Unit + integration: 162 tests pass.
+- `RichFormattingTests` (14): bold, italic, and underline apply only to the selection; toggling removes them; with no selection they change the typing style; undo reverts bold; headings set size and weight and leave the next paragraph alone; body text resets a heading; bullets toggle on one paragraph; the first command on a plain note asks the model once; typing in a plain note keeps it plain; read-only notes ignore commands; heading and bullet formatting survive the RTF round trip; an ordinary save leaves selection and undo intact; a changed body replaces the text.
+- `RichEditingModelTests` (3): a formatted edit saves, reopens, loads as formatted, and keeps bold; a failed formatted save keeps the formatting in memory, reports Not saved, and then saves on retry; damaged formatting is read-only, takes no edits, and makes a recovery copy that keeps the saved text and leaves the original bytes unchanged.
+- UI: `FormatUITests` confirms the Format menu offers every command.
+- Full suite with the earlier UI tests: 16 UI tests run, one failure in the relaunch test (see below).
+
+### Flaky UI test: `TrashUITests.testDeletedNoteSurvivesRelaunchAndCanBeRestored`
+
+- With the 03-02 code the test failed in all three runs I made: once in the full suite, and in two solo runs. The failures were at different steps: the first click on New Note, and the check after relaunch.
+- On the committed Stage 2 code (a temporary worktree, since removed) the same test failed once in two solo runs, with a different error ("Unable to find hit point for ScrollView").
+- The screenshots from the failing runs include an accessibility hierarchy of a JetBrains IDE window. That suggests another app's window was on screen and overlapped the JAASNotes window during the test. This is not verified. Re-running with other apps closed would settle it.
+- The test is not claimed as fixed, and it is not changed here.
+
+### Remaining gaps and risks
+
+- No manual VoiceOver or keyboard-only check of the Format menu, the formatting commands, or the unreadable banner.
+- Return inside a bulleted list is not tested. AppKit's list continuation is assumed, not verified.
+- The first rich save of a note changes its combining sequences to precomposed form (D-021).
+- Rich bodies are encoded on the main actor for each save. This is fine for note-sized text, but unmeasured for very large notes.
+- Recovery copies from "Save Recovery Copy" write plain text. Formatting is not kept in that file.
+- Checklists have no editing controls yet. A checklist whose ranges no longer match the text will make its save fail with a clear message. This cannot happen from the 03-02 editor because no UI creates checklists yet, but 03-03 must keep the ranges in step with edits.
+
+## 03-03 — Checklist controls, item identity through edits, paste, and undo
+
+- **Status:** COMPLETE for the automated evidence below. A manual VoiceOver walkthrough of the checkboxes is not yet done (see remaining gaps).
+- **Date:** 2026-10-16
+- **Commit:** not committed yet
+
+### Changes
+
+- **Rules:** `Domain/ChecklistEditing.swift` (pure): `apply` (identity through edits, D-025), `toggled`, `addingItems`, `removingItems`, `item(at:)`, paragraph helpers. The codec's remap now uses the shared paragraph splitter.
+- **Editor:** `NoteTextView` tracks each change with `shouldChangeText`/`didChangeText`, applies the rule, and registers the checklist for undo. It places one `NSButton` per item, sets the checklist indent, and reports text and checklist to the model. Checkbox clicks, Format commands, and undo use the same path.
+- **Accessibility:** checkboxes are accessibility children of the text view, labelled "Checklist item, <first 60 characters>", identified as `checklistItem`, with checked state as their value.
+- **Model:** `updateRichDraft(for:text:checklist:)` saves text and checklist together. `updateDraft` is plain text only.
+- **Menu:** Format > Checklist (Shift-Cmd-C), Check or Uncheck Item (Shift-Cmd-Return).
+
+### Commands
+
+```sh
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/<new>.xcresult -only-testing:JAASNotesTests test
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/<new>.xcresult -only-testing:JAASNotesUITests/FormatUITests test
+```
+
+### Results
+
+- Unit + integration: 188 tests pass.
+- `ChecklistEditingTests` (17): typing inside an item keeps its identity and state, including emoji; Return at the end, in the middle, and at the start of an item; joining a plain paragraph into an item; joining an item with a plain paragraph before it; deleting a whole item; pasting lines inside an item; edits away from items; no checklist; toggling; adding and removing items per paragraph; selections that end at a paragraph start; item lookup.
+- `ChecklistEditorTests` (8): typing, Return, paste (through `insertText`, not the clipboard), undo restoring text and checklist together, a checkbox click that reports and undoes, the Checklist command adding and removing items, the Check shortcut, and a plain note becoming formatted on its first checklist command.
+- `RichEditingModelTests.testChecklistIdentityAndStateSurviveRestart`: three items with Japanese and emoji text keep IDs, checked state, and positions across a save and a restart.
+- UI: `FormatUITests.testChecklistIsAddedAndCheckedFromTheKeyboard` adds a checklist with Shift-Cmd-C and checks it with Shift-Cmd-Return. The checkbox's accessible value changes from 0 to 1.
+- Visual check: `FormatUITests.testChecklistLayoutScreenshot` attaches a screenshot. The attachment shows each checkbox on its own line, the checked state, and a wrapped line inside the indent. The note row preview reads the checklist text.
+
+### Bugs found during this substage
+
+1. A checklist range could span a line break. Fixed: the validator refuses it (03-01 follow-up).
+2. Checkbox state in the UI test was checked as text. Accessibility values are numbers. The test compares numerically.
+3. The first accessibility query did not see the checkboxes: subviews of a text view are not its accessibility children. Fixed: they are listed explicitly.
+
+### Remaining gaps and risks
+
+- No manual VoiceOver walkthrough of the checkboxes. The labels and values are tested automatically; what VoiceOver reads aloud has not been heard.
+- Paste is tested through `insertText`. A real clipboard paste of rich content (for example from a web page) has not been tested.
+- A paragraph with both a bullet and a checklist item is not supported.
+- Text with carriage returns or U+2028/U+2029 line separators is not handled by the paragraph model. The save path normalizes them to line feeds, and that can move checklist positions. Native NSTextView input normally produces line feeds only.
+- Checkbox layout is measured from one Mac and one font size.
+- UI test runs in this environment were intermittently slow to find windows at launch. Several UI tests failed at launch on some runs and passed on rerun (see the 03-02 entry).
+
+## 03-04 — Stage 3 gate (partial)
+
+- **Status:** NOT COMPLETE. The automated gate passes. The accessibility part of the gate has not been run.
+- **Date:** 2026-10-16
+- **Commit:** not committed yet
+
+### Automated gate: passing
+
+- Full suite, final run: 207 tests pass (188 unit and integration, 19 UI). Nothing failed.
+- Migration: version 1 and version 2 libraries upgrade with IDs, text, pins, and Recently Deleted unchanged (`MigrationTests`).
+- Search: visible text in formatted notes is found, and RTF control words are not (`RichNoteRepositoryTests`). Previews show the same text (checked in the 03-03 screenshot).
+- Failure paths: a failed formatted save keeps the formatting and can retry; damaged or newer formatting is read-only and never overwritten; a recovery copy keeps the saved text (`RichEditingModelTests`, `RichNoteRepositoryTests`).
+- Stage 1 and 2 workflows: the existing UI tests (folders, editing, trash, search, keyboard, force-quit persistence) pass in the final run.
+
+### Not run
+
+- **Manual VoiceOver walkthrough** of the Format menu, the formatting commands, the checkboxes, and the unreadable-note banner. The labels, values, and identifiers are tested automatically. What VoiceOver announces, and the reading order, have not been checked.
+- **Manual keyboard-only walkthrough** of the Format commands and the checklist shortcuts, including Tab order around the editor.
+- **Light and dark appearance** of the checkboxes and the banner.
+- **macOS 14** runtime. This Mac runs macOS 26.6.2.
+- **Intel**: not tested.
+
+### What the owner needs to do
+
+1. Run the Format menu and the checklist shortcuts with VoiceOver on, and record what is announced and whether the checkboxes can be reached and toggled.
+2. Confirm the shortcuts (Shift-Cmd-C for Checklist, Shift-Cmd-Return for Check or Uncheck Item, Option-Cmd-1…3 for headings) are the ones you want.
+3. Record the result here. If anything fails, a new substage (03-05 or later) is needed; the gate is not marked complete until then.
+
+### Environment note
+
+- Some UI tests failed at launch on early runs and passed on rerun (see the 03-02 entry). The final full run passed. The cause is probably other windows on screen during the run, but that is not verified.

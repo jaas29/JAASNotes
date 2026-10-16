@@ -28,7 +28,27 @@ final class LibraryModel {
 
     struct Draft: Equatable {
         var title: String
+        /// Plain text. For a formatted body it is derived from `rich`, so search and previews read the same text.
         var bodyPlainText: String
+        /// The formatted body, or nil while the note is plain text. A note becomes formatted only through a formatting command.
+        var rich: RichDraftBody?
+    }
+
+    /// A formatted body as the editor shows it, with its checklist. Attributed strings compare by content.
+    struct RichDraftBody: Equatable {
+        var text: NSAttributedString
+        var checklist: ChecklistSidecar?
+
+        static func == (lhs: RichDraftBody, rhs: RichDraftBody) -> Bool {
+            lhs.text.isEqual(to: rhs.text) && lhs.checklist == rhs.checklist
+        }
+    }
+
+    /// Whether the editor can show a note yet. Formatted notes load their body first.
+    enum BodyState: Equatable {
+        case loading
+        case ready
+        case unreadable(fallbackText: String, reason: String)
     }
 
     enum SaveStatus: Equatable {
@@ -62,6 +82,10 @@ final class LibraryModel {
     /// Trashed notes. They are read-only and kept out of `notes`, so no path can autosave them.
     private(set) var deletedNotes: [NoteSnapshot] = []
     private(set) var drafts: [UUID: Draft] = [:]
+    /// Formatted bodies read from the store. Replaced on each successful rich save; cleared with the drafts.
+    private(set) var richBodies: [UUID: RichDraftBody] = [:]
+    /// Formatted notes whose stored formatting could not be read. They are shown read-only with their saved text.
+    private(set) var unreadableBodies: [UUID: (fallbackText: String, reason: String)] = [:]
     private(set) var operationError: String?
     private(set) var saveFailures: [UUID: String] = [:]
 
@@ -210,7 +234,41 @@ final class LibraryModel {
     }
 
     func draft(for note: NoteSnapshot) -> Draft {
-        drafts[note.id] ?? Draft(title: note.title, bodyPlainText: note.bodyPlainText)
+        drafts[note.id] ?? Draft(title: note.title, bodyPlainText: note.bodyPlainText, rich: richBodies[note.id])
+    }
+
+    func bodyState(for note: NoteSnapshot) -> BodyState {
+        guard note.hasRichContent, drafts[note.id] == nil else { return .ready }
+        if richBodies[note.id] != nil {
+            return .ready
+        }
+        if let unreadable = unreadableBodies[note.id] {
+            return .unreadable(fallbackText: unreadable.fallbackText, reason: unreadable.reason)
+        }
+        return .loading
+    }
+
+    /// Reads a formatted note's body before its editor appears. Plain notes need nothing. Safe to call repeatedly.
+    func prepareBody(for note: NoteSnapshot) async {
+        guard note.hasRichContent, drafts[note.id] == nil, richBodies[note.id] == nil, unreadableBodies[note.id] == nil,
+              let store = activeStore
+        else { return }
+        do {
+            switch try await store.body(of: note.id) {
+            case .rich(let content):
+                richBodies[note.id] = RichDraftBody(
+                    text: try RichTextCodec.attributedString(of: content),
+                    checklist: content.checklist
+                )
+            case .unreadable(let fallbackText, let reason):
+                unreadableBodies[note.id] = (fallbackText, reason)
+            case .plain(let text):
+                // The note says it is formatted, so a plain body means the record disagrees with itself. Show it read-only.
+                unreadableBodies[note.id] = (text, "The note's formatting record does not match its contents.")
+            }
+        } catch {
+            operationError = Self.message(for: error)
+        }
     }
 
     func displayTitle(for note: NoteSnapshot) -> String {
@@ -219,18 +277,36 @@ final class LibraryModel {
 
     // MARK: - Editing
 
+    /// Records a plain-text edit. Ignored once the note is formatted, which is edited through `updateRichDraft`.
     func updateDraft(for noteID: UUID, title: String? = nil, body: String? = nil) {
         guard let note = notes.first(where: { $0.id == noteID }) else { return }
+        // A formatted note can only be edited once its body is loaded, and never when its formatting cannot be read.
+        guard bodyState(for: note) == .ready else { return }
         let current = draft(for: note)
         var updated = current
         if let title {
             updated.title = title
         }
-        if let body {
+        if let body, current.rich == nil {
             updated.bodyPlainText = body
         }
-        // Views can report unchanged text (for example, when focus moves). That is not an edit, so it must not
-        // make the note dirty or start a save.
+        commitDraft(updated, replacing: current, for: noteID)
+    }
+
+    /// Records a formatted edit. The text and checklist are saved together. A plain note becomes formatted the first time this is called.
+    func updateRichDraft(for noteID: UUID, text: NSAttributedString, checklist: ChecklistSidecar?) {
+        guard let note = notes.first(where: { $0.id == noteID }) else { return }
+        guard bodyState(for: note) == .ready else { return }
+        let current = draft(for: note)
+        var updated = current
+        updated.rich = RichDraftBody(text: text, checklist: checklist)
+        updated.bodyPlainText = RichTextCodec.plainText(of: text)
+        commitDraft(updated, replacing: current, for: noteID)
+    }
+
+    /// Stores an edited draft and starts autosave. Views can report unchanged text (for example, when focus moves).
+    /// That is not an edit, so it must not make the note dirty or start a save.
+    private func commitDraft(_ updated: Draft, replacing current: Draft, for noteID: UUID) {
         guard !Self.sameText(updated, current) else { return }
         drafts[noteID] = updated
         draftRevisions[noteID, default: 0] += 1
@@ -351,12 +427,27 @@ final class LibraryModel {
             // alert on every retry, such as one triggered by the window losing focus.
             savingNoteIDs.insert(noteID)
             do {
-                let saved = try await store.updateNote(
-                    id: noteID,
-                    expectedRevision: note.revision,
-                    title: text.title,
-                    bodyPlainText: text.bodyPlainText
-                )
+                let saved: NoteSnapshot
+                if let rich = text.rich {
+                    let content = try RichTextCodec.content(from: rich.text, checklist: rich.checklist)
+                    saved = try await store.updateRichNote(
+                        id: noteID,
+                        expectedRevision: note.revision,
+                        title: text.title,
+                        content: content
+                    )
+                    richBodies[noteID] = RichDraftBody(
+                        text: try RichTextCodec.attributedString(of: content),
+                        checklist: content.checklist
+                    )
+                } else {
+                    saved = try await store.updateNote(
+                        id: noteID,
+                        expectedRevision: note.revision,
+                        title: text.title,
+                        bodyPlainText: text.bodyPlainText
+                    )
+                }
                 savingNoteIDs.remove(noteID)
                 saveFailures[noteID] = nil
                 replaceNote(saved)
@@ -603,11 +694,27 @@ final class LibraryModel {
         }
         debounceTasks = [:]
         drafts = [:]
+        richBodies = [:]
+        unreadableBodies = [:]
         draftRevisions = [:]
         savedDraftRevisions = [:]
         firstUnsavedEdit = [:]
         saveFailures = [:]
         savingNoteIDs = []
+    }
+
+    /// Creates a plain-text copy of an unreadable note in the same folder and selects it. The original is not changed.
+    func makeRecoveryCopy(for noteID: UUID) async -> Bool {
+        guard let store = activeStore else { return false }
+        do {
+            let copy = try await store.makeRecoveryCopy(of: noteID)
+            try await refresh()
+            selectedNoteID = copy.id
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
     }
 
     // MARK: - Recovery
@@ -974,9 +1081,11 @@ final class LibraryModel {
     }
 
     /// Compares Unicode scalars, so canonically equivalent but differently encoded text still counts as a change.
+    /// Formatted bodies are compared with their attributes as well.
     private static func sameText(_ lhs: Draft, _ rhs: Draft) -> Bool {
         lhs.title.unicodeScalars.elementsEqual(rhs.title.unicodeScalars)
             && lhs.bodyPlainText.unicodeScalars.elementsEqual(rhs.bodyPlainText.unicodeScalars)
+            && lhs.rich == rhs.rich
     }
 
     private static func message(for error: Error) -> String {

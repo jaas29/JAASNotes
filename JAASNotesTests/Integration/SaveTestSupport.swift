@@ -94,6 +94,22 @@ actor FaultyNoteStore: NoteStore {
         return try await base.updateNote(id: id, expectedRevision: expectedRevision, title: title, bodyPlainText: bodyPlainText)
     }
 
+    func body(of id: UUID) async throws -> NoteBody {
+        try await base.body(of: id)
+    }
+
+    func updateRichNote(id: UUID, expectedRevision: Int64, title: String, content: RichNoteContent) async throws -> NoteSnapshot {
+        if failuresRemaining > 0 {
+            failuresRemaining -= 1
+            throw LibraryError.saveFailed("Injected write failure.")
+        }
+        return try await base.updateRichNote(id: id, expectedRevision: expectedRevision, title: title, content: content)
+    }
+
+    func makeRecoveryCopy(of id: UUID) async throws -> NoteSnapshot {
+        try await base.makeRecoveryCopy(of: id)
+    }
+
     func initializeLibraryIfNeeded() async throws -> LibraryMetadataSnapshot {
         try await base.initializeLibraryIfNeeded()
     }
