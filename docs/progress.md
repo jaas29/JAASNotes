@@ -463,5 +463,5 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 ### Environment gaps (not verified)
 
 - **macOS 14 runtime:** not run. No macOS 14 machine or VM is available. The deployment target is 14.0, so this is a compile-time setting only.
-- **CI:** `.github/workflows/ci.yml` is pushed with this commit. Its result is recorded in the CI section below once it has run.
+- **CI:** `.github/workflows/ci.yml` passes on `21b2225` (GitHub Actions, macOS 15 runner, Xcode 26.3): build, unit and integration tests, and UI tests. The previous run failed in `FolderUITests` at the toolbar Move To menu, which the runner could not open; that step now uses the row context menu.
 - **Intel:** not tested.
