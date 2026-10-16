@@ -345,7 +345,7 @@ Use official documentation and verify availability against the chosen SDK during
 
 03-03: Implement accessible checklist controls and stable item/range transforms for edits, paragraph split/merge, paste, and undo. Requires 03-02. Complete when checked state and item identity survive these operations and restart, including emoji and non-Latin text. [COMPLETE]
 
-03-04: Integrate rich-content search/previews and execute Stage 3 regression, migration, failure, and accessibility gates. Requires 03-03. Complete when visible text remains searchable and all Stage 1–3 workflows pass in the runnable app with evidence. [NOT COMPLETE]
+03-04: Integrate rich-content search/previews and execute Stage 3 regression, migration, failure, and accessibility gates. Requires 03-03. Complete when visible text remains searchable and all Stage 1–3 workflows pass in the runnable app with evidence. [COMPLETE]
 
 04-01: Add the Attachment model/migration, staged file-copy pipeline, hashes, reconciliation, and attachment-aware backup/restore. Requires 03-04. Complete when injected failures cannot produce an acknowledged missing payload and copied bytes survive source deletion, restart, and restore. [NOT COMPLETE]
 

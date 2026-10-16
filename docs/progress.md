@@ -643,9 +643,9 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - Checkbox layout is measured from one Mac and one font size.
 - UI test runs in this environment were intermittently slow to find windows at launch. Several UI tests failed at launch on some runs and passed on rerun (see the 03-02 entry).
 
-## 03-04 — Stage 3 gate (partial)
+## 03-04 — Stage 3 gate
 
-- **Status:** NOT COMPLETE. The automated gate passes. The accessibility part of the gate has not been run.
+- **Status:** COMPLETE. Automated gate passes; manual VoiceOver and keyboard pass reported passed by the owner on 2026-10-16 (macOS 26.6.2, M3 Pro). Light/dark, macOS 14, and Intel remain untested.
 - **Date:** 2026-10-16
 - **Commit:** not committed yet
 
@@ -674,3 +674,16 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 ### Environment note
 
 - Some UI tests failed at launch on early runs and passed on rerun (see the 03-02 entry). The final full run passed. The cause is probably other windows on screen during the run, but that is not verified.
+
+### Owner report (2026-10-16)
+
+- The owner reports the VoiceOver and keyboard-only pass of the Format menu, formatting commands, checkboxes, and unreadable-note banner passed. Specific announcements were not recorded.
+
+### Stage 3 exit gate
+
+- Legacy text notes remain editable: `MigrationTests`, `LibraryRepositoryTests`, `RichNoteRepositoryTests` (plain save path).
+- Formatting and checklist identity survive save, restart, backup, and restore: `RichEditingModelTests`, `RichNoteRepositoryTests`, `BackupRestoreTests.testRichNoteWithChecklistSurvivesSnapshotAndRestore`.
+- Unicode edits and paragraph operations preserve checklist associations: `ChecklistEditingTests`, `ChecklistEditorTests`.
+- Searches still match visible content: `RichNoteRepositoryTests.testRichTextIsSearchableByVisibleTextOnly`.
+- Corrupt rich content does not overwrite originals: `RichNoteRepositoryTests`, `RichEditingModelTests`.
+- Stage 3 gate: met for the recorded environment.
