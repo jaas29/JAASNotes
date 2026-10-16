@@ -269,3 +269,156 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - Accessibility of the status line (VoiceOver announcements) is not checked; it belongs to 01-09.
 
 - **Flaky UI test (observed once).** In the full run on 2026-10-15, `testFailedSaveCancelsQuitAndKeepsDraft` failed at the "Changes Not Saved" wait (5 s timeout). The same test passed when rerun alone, and the earlier full runs passed. The cause is not diagnosed. Next step: rerun the full UI suite several times and, if it recurs, lengthen that wait or check the status-line timing.
+
+## 01-05 — Folders, note moves, list ordering, and empty states
+
+- **Status:** pass (complete).
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Changes
+
+- **Repository:** `renameFolder` (the default Notes folder is fixed, duplicate names are rejected with the folder's own spelling excluded, and renaming to the same spelling changes nothing). `moveNote` (a move updates `modifiedAt` and the revision; moving into the current folder changes nothing; stale revisions and missing folders are rejected). Active notes are sorted newest first with the UUID string as tie-breaker (`NoteSnapshot.newestFirst`).
+- **Model:** `createFolder` (selects the new folder) and `renameFolder` throw, so the sheet can show the message inline. `moveNote` saves pending text first and is refused if that save fails. Selection clears when the selected note leaves the shown folder. List order is re-applied only when focus leaves a note, so rows do not move while typing.
+- **UI:** New Folder toolbar button and sheet (inline errors, Return and Escape); folder rename from the context menu (disabled for Notes); note count badges; Move To toolbar menu and row context menu (current folder disabled); empty-folder state.
+- **Test wrappers:** `FaultyNoteStore` can fail folder and move writes (`failNextStructuralWrites`).
+
+### Commands run
+
+```sh
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/JAASNotes-full-0105-<time>.xcresult -test-timeouts-enabled YES -default-test-execution-time-allowance 90 test
+```
+
+### Results
+
+- Build: succeeds.
+- Full suite: **TEST SUCCEEDED**. 61 unit and integration tests and all UI tests, including the new `FolderUITests`.
+- Added integration tests (`FolderAndMoveRepositoryTests`, 9): rename persists across reopen and keeps uniqueness; case-only rename of itself allowed; duplicate rejected and both folders unchanged; default folder fixed; empty and reserved names rejected; move persists across reopen and updates revision and `modifiedAt`; move into same folder is a no-op; stale revision and missing folder leave the note unchanged; newest-first order with stable tie-breaker.
+- Added model tests (`FolderModelTests`, 8): created folder selected; failed creation creates nothing; rejected rename keeps the old name; move saves pending text first; move refused while saves fail and the draft survives; failed move write leaves note and selection unchanged; selection clears when the note leaves the folder; selecting a note re-applies order.
+- UI (`FolderUITests`): create folder, rename it, create a note in it, move it with the toolbar menu, quit, relaunch. The folder name and the empty folder state survive relaunch.
+
+### Acceptance check against the 01-05 criteria
+
+| Criterion | Evidence | Status |
+| --- | --- | --- |
+| Operations survive restart | Integration reopen tests and `FolderUITests` relaunch | Pass |
+| Invalid folder names leave data consistent | Repository and model tests for empty, reserved, and duplicate names | Pass |
+| Failed moves leave data and selection consistent | Model tests with injected failures | Pass |
+
+### Remaining gaps and risks
+
+- The inline error text in the folder sheet is not checked by UI automation; only the model path is tested.
+- Drag-and-drop moves are not implemented (optional, Stage 2).
+- Folder names are not visually checked for long or right-to-left text yet (01-09).
+- The sidebar "New Folder" button is placed in the split view's toolbar. A sidebar-attached toolbar item did not appear in automation.
+
+## 01-06 — Literal search, scopes, draft overlay, and stale-result protection
+
+- **Status:** pass (complete).
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Changes
+
+- **Repository:** `searchActiveNotes(matching:)` uses `CONTAINS[cd]` with a bound value, so search is literal. Trashed notes are excluded.
+- **Model:** search text is debounced by 200 ms. Each edit or save bumps a generation number, and a result for an older generation is dropped. Results are the stored matches plus any in-memory draft that matches, so a database match never hides unsaved text. "This Folder" scope filters in memory over one global query. Creating a note clears the search so the new note is visible.
+- **UI:** `.searchable` in the note list with All Notes / This Folder scopes; `ContentUnavailableView.search` for no results. Search covers Recently Deleted only while that view is selected.
+
+### Results
+
+- Unit and integration: `SearchRepositoryTests` (2) and `SearchModelTests` (6), including the late-result case with a held query and literal patterns (`a.c`, `*`, `%`, `[a]`).
+- UI: `SearchUITests` types a diacritic-free query and finds an accented title, then shows the no-results state.
+
+### Acceptance check
+
+| Criterion | Evidence | Status |
+| --- | --- | --- |
+| Unicode queries find title and body matches | `SearchRepositoryTests`, `SearchUITests` | Pass |
+| Deleted notes are excluded from active scopes | `testTrashedNotesAreExcludedFromSearch`, `testSearchCoversRecentlyDeletedOnlyWhenSelected` | Pass |
+| Rapid queries cannot show obsolete results | `testOlderSearchFinishingLateCannotReplaceNewerResults` | Pass |
+
+### Remaining gaps
+
+- Search reruns the query over all active notes on every save while a search is active. Performance is measured in 02-04's sorting checks, not here.
+- Searching folder names and attachments is excluded by design (plan §7).
+
+## 01-07 — Soft deletion, Recently Deleted, and restore
+
+- **Status:** pass (complete).
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Changes
+
+- **Repository:** `trashNote` sets `deletedAt` and bumps the revision; it does not change `modifiedAt`, content, or folder. `restoreNote` clears `deletedAt`, returns the note to its folder, and bumps the revision. `deletedNotes` lists trash most-recently-deleted first. Trash and restore reject a stale revision, an already-trashed note, or a note that is not trashed.
+- **Model:** Recently Deleted is a sidebar item. Its notes are read-only and are kept out of `notes`, so no autosave path can write them. Trash moves selection to the neighboring note, flushes pending text first, and is refused if that save fails. Creating a note from Recently Deleted switches to All Notes.
+- **UI:** Delete button and context-menu item; Recently Deleted rows show the deletion date; the editor's status line says "Deleted … Read-only." with Restore.
+- **Not built, by design:** permanent deletion and Empty Recently Deleted are Stage 2 (02-03). Nothing purges automatically.
+
+### Results
+
+- Integration: `TrashRepositoryTests` (5) — content, folder, and `modifiedAt` survive trash, reopen, and restore; invalid transitions and stale revisions are rejected; trash order; trashed notes excluded from search.
+- Model: `TrashModelTests` (7) — neighbor selection with pending text saved first; refusal while saves fail; failed restore keeps the note in trash; trashed notes cannot be edited; restore returns to the folder; creating from trash shows the new note; search covers trash only when selected.
+- UI: `TrashUITests` deletes a note, quits, relaunches, finds it in Recently Deleted, restores it, and finds it in All Notes.
+
+### Remaining gaps
+
+- Cmd-Delete trash shortcut is in 01-09 with focus routing; the toolbar and context menu cover it here.
+
+## 01-08 — Backups, restores, recovery, and store-open failure
+
+- **Status:** pass (complete), with the caveats below.
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Changes
+
+- **Services:** `LibraryBackupService` (quiesced snapshot, validation, SHA-256 manifest, publish by rename, listing, retention of 7 automatic backups, sanitized diagnostic report, move-aside helper, export). `LibraryRestoreService` (validated restore, transaction marker, startup recovery, rollback).
+- **Model:** Back Up Now, automatic backup at most once a day after a change (checked when the app becomes active), Restore with a pre-restore backup first, Retry, Create New Library after moving the old one aside, Save Diagnostic Info, Copy Backup. Operations wait while the library is locked.
+- **Store safety:** `CoreDataStack.checkCompatibility` refuses an existing file that is not a JAASNotes store, before any writable open (D-014).
+- **UI:** `StoreRecoveryView` replaces the editor when the library cannot open (Retry, Restore From Backup, Save Diagnostic Info, Create New Library). `BackupsSheet` lists backups with last-backup date and failure messages, and offers Back Up Now, Copy, and Restore.
+
+### Results
+
+- Integration: `BackupRestoreTests` (12 tests): fresh-library restore; replacing a populated library with the old one kept in Recovery; identical note IDs after restore; damaged backup refused before any change (checksum); newer manifest refused without change; invalid packages not listed; interruption after moving the library aside is rolled back at startup; interruption after installing is completed at startup; corrupt store left byte-identical and not replaced; foreign SQLite file refused and left byte-identical; Create New Library keeps the old file; retention keeps 7 automatic and never prunes manual; once-a-day automatic rule; pre-restore backup taken before a restore; exported copy restores.
+- Full suite: 96 unit and integration tests pass.
+
+### Bugs found and fixed during this substage
+
+1. Checksums were taken before validation. Opening the staged copy changed its `-shm`, so restore refused a good backup. Fixed: checksum after validation (D-012).
+2. The repository and model used different clocks, so automatic backups ran on every activation. Fixed: the repository takes the model's clock.
+3. A foreign SQLite file was given Core Data tables and then initialized as an empty library. Fixed: compatibility check before writable open (D-014).
+
+### Remaining gaps and risks
+
+- **Newer-model fixture not built.** An attempt to build a store with an added entity crashed inside Core Data in the test. The refusal path is covered by the foreign-file fixture and the same metadata check. A real newer-model store is still needed before 02-01, when migrations exist.
+- **Store-open recovery UI is not click-tested.** The model paths are tested; the buttons are not driven by UI automation.
+- **Recovery/ is never pruned.** Retention for moved-aside libraries needs an owner decision.
+- **Interruption at each snapshot boundary is not injected.** Only the restore swap has interruption points. Snapshot copying is covered by the staging-and-rename design, not by injected faults.
+- **Disk-full and permission failures are not produced for real.** They are not injected in the backup path either.
+
+## 01-09 — Menus, focus routing, shortcuts, light and dark, accessibility
+
+- **Status:** NOT COMPLETE. Shortcut behavior is verified. VoiceOver and the keyboard-only walkthrough still need a manual run on the owner's Mac.
+- **Date:** 2026-10-15
+- **Commit:** not committed yet
+
+### Changes
+
+- **Menus:** File: New Note (Cmd-N), New Folder (Shift-Cmd-N), Rename Folder…, Move Note To ▸, Move to Recently Deleted (Cmd-Delete), Restore Note, Backups…. Edit: Find in Note… (Cmd-F, native find bar in the body), Search Notes (Shift-Cmd-F). View: All Notes (Cmd-1), Recently Deleted (Cmd-2). Save (Cmd-S).
+- **Cmd-Delete routing:** when the first responder is a text view (body or title field editor), the command sends `deleteToBeginningOfLine` to the responder; only the note list trashes the selected note.
+- **Focus:** Shift-Cmd-F focuses the search field. `searchFocused` is macOS 15 API; on macOS 14 an AppKit fallback finds the `NSSearchField`. The fallback is not exercised on this Mac.
+- **Window reopen:** unchanged; SwiftUI's WindowGroup reopens from the Dock.
+
+### Results
+
+- UI (`KeyboardUITests`, 4 tests, all pass): Shift-Cmd-N opens the folder sheet; Cmd-Delete in the body edits text and keeps the note; Cmd-Delete in the note list moves the selected note; Shift-Cmd-F puts the caret in the search field.
+
+### Remaining gaps (must be closed before 01-09 is complete)
+
+- **VoiceOver walkthrough not run.** Required by the plan. Labels exist for the toolbar buttons, rows, status lines, and search results, but a screen reader pass has not happened.
+- **Keyboard-only walkthrough not complete.** Tab order across sidebar, list, title, and body is not verified.
+- **Light and dark appearance not checked** with screenshots or UI tests.
+- **Long text, large Dynamic Type, and right-to-left input** not checked.
+- **Settings window (Cmd-comma)** is not implemented. It is not needed for Stage 1's listed controls, but the plan lists it under menus.
+- **Window close and reopen** are not checked after closing the only window.

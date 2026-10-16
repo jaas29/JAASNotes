@@ -82,3 +82,27 @@ Architecture choices and approved changes. Entries are added as decisions are ma
 - **Why:** This matches the plan's rule that an older save can never mark newer text as saved. Keeping the failure message avoids repeated alerts from background flushes.
 - **Consequence:** Retries do not reset the failure state. Only a successful save or an explicit discard clears it.
 
+
+## D-012 — Backups are quiesced snapshots of a closed store, validated before publication
+
+- **Decision:** a snapshot closes the live store, copies `Store.sqlite` (and any `-wal`/`-shm`), validates the copy with migration disabled, computes SHA-256 checksums after validation, writes `manifest.json`, and only then renames the package into `Backups/`.
+- **Why:** copying an open WAL set with file operations is not consistent (plan §6). Checksumming before validation was wrong: opening a store updates its `-shm`, which the first test run caught.
+- **Consequence:** the library is unavailable for the copy (milliseconds for Stage 1 sizes). Operations wait for the lock; pending text is flushed first.
+
+## D-013 — Restores use a transaction marker and never delete the previous library
+
+- **Decision:** a restore validates a staged copy, writes `Staging/restore-transaction.json`, moves the current library to `Recovery/`, installs the candidate, and validates it. Only then is the marker removed. `recoverInterruptedRestore` runs at every load and finishes or undoes an interrupted restore.
+- **Why:** a crash between two directory renames must not leave the library missing (plan §6). Previous libraries are kept, not deleted, so a bad restore is recoverable by hand.
+- **Consequence:** `Recovery/` grows with each restore or "create new library". Stage 1 does not prune it; the owner should decide retention before Stage 2.
+
+## D-014 — A store is refused before any writable open unless it is a JAASNotes store
+
+- **Decision:** `CoreDataStack.openContainer` checks an existing file with a read-only SQLite query for Core Data's `Z_METADATA` table, then reads the metadata and requires `NSStoreModelVersionHashesKey` and a compatible model. Refused files are never changed.
+- **Why:** a foreign SQLite file received Core Data tables and was then initialized as an empty library, which the plan forbids. Reading metadata through Core Data wrote to the file too, so the read-only check runs first.
+- **Consequence:** a store written by a different model version is refused rather than migrated. Migration is Stage 2's job (02-01).
+
+## D-015 — Automatic backups are compared against the newest modification in the library
+
+- **Decision:** an automatic backup runs at most once every 24 hours, and only when a note or folder was modified or trashed after the newest automatic backup. Repository and model share one clock, so the comparison is valid.
+- **Why:** the plan requires "at most one per day after a change". Comparing dates needs no extra persisted state.
+- **Consequence:** backups made by the app are not tracked by a separate change flag.

@@ -1,5 +1,6 @@
 import CoreData
 import Foundation
+import SQLite3
 
 /// Opens and closes the Core Data SQLite store. Automatic migration is disabled: migrations are explicit steps
 /// added in later stages, never silent changes to the only copy of a user's library.
@@ -14,6 +15,7 @@ enum CoreDataStack {
             at: location.libraryDirectoryURL,
             withIntermediateDirectories: true
         )
+        try checkCompatibility(of: location.storeURL, with: model)
 
         let description = NSPersistentStoreDescription(url: location.storeURL)
         description.type = NSSQLiteStoreType
@@ -33,6 +35,55 @@ enum CoreDataStack {
         return container
     }
 
+    /// Reads the existing store's metadata without opening it for writing. A store this model cannot read is refused,
+    /// so a foreign file or a newer library is never given Core Data tables or treated as an empty library.
+    static func checkCompatibility(of storeURL: URL, with model: NSManagedObjectModel) throws {
+        guard FileManager.default.fileExists(atPath: storeURL.path) else { return }
+        // Core Data's own table must be there. Reading metadata through Core Data would write to a foreign file,
+        // so this check uses a read-only SQLite connection first.
+        guard hasCoreDataMetadataTable(storeURL) else {
+            throw LibraryError.storeLoadFailed(
+                "The library file is not a JAASNotes library. It was not changed."
+            )
+        }
+        let metadata: [String: Any]
+        do {
+            metadata = try NSPersistentStoreCoordinator.metadataForPersistentStore(
+                ofType: NSSQLiteStoreType,
+                at: storeURL,
+                options: nil
+            )
+        } catch {
+            throw LibraryError.storeLoadFailed("The library file could not be read. It was not changed.")
+        }
+        // A file without Core Data's model hashes is not a Core Data store. Some Core Data versions treat empty
+        // metadata as compatible, so the hash key is required as well.
+        guard metadata[NSStoreModelVersionHashesKey] != nil,
+              model.isConfiguration(withName: nil, compatibleWithStoreMetadata: metadata) else {
+            throw LibraryError.storeLoadFailed(
+                "The library was written by a different version of JAASNotes, or it is not a JAASNotes library. It was not changed."
+            )
+        }
+    }
+
+    /// True when the file is a SQLite database with Core Data's `Z_METADATA` table. Opens read-only and never writes.
+    private static func hasCoreDataMetadataTable(_ url: URL) -> Bool {
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(url.path, &database, SQLITE_OPEN_READONLY, nil) == SQLITE_OK, let database else {
+            sqlite3_close(database)
+            return false
+        }
+        defer { sqlite3_close(database) }
+        var statement: OpaquePointer?
+        let query = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'Z_METADATA'"
+        guard sqlite3_prepare_v2(database, query, -1, &statement, nil) == SQLITE_OK else {
+            sqlite3_finalize(statement)
+            return false
+        }
+        defer { sqlite3_finalize(statement) }
+        return sqlite3_step(statement) == SQLITE_ROW
+    }
+
     /// Removes the store from its coordinator so SQLite releases its file handles before a copy or reopen.
     static func close(_ container: NSPersistentContainer) throws {
         let coordinator = container.persistentStoreCoordinator
@@ -41,7 +92,7 @@ enum CoreDataStack {
         }
     }
 
-    private static func managedObjectModel() throws -> NSManagedObjectModel {
+    static func managedObjectModel() throws -> NSManagedObjectModel {
         let bundle = Bundle(for: BundleToken.self)
         guard let modelURL = bundle.url(forResource: LibraryLocation.folderName, withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL)

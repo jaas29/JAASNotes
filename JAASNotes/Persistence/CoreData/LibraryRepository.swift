@@ -101,6 +101,70 @@ actor LibraryRepository: NoteStore {
         }
     }
 
+    /// Renames a user folder. The default Notes folder is fixed. Renaming to the same spelling changes nothing.
+    func renameFolder(id: UUID, to input: String) async throws -> FolderSnapshot {
+        let (displayName, normalizedName) = try FolderName.validated(input)
+        return try await write { context, now in
+            guard let folder = try Self.fetch(
+                FolderRecord.self,
+                entity: "Folder",
+                in: context,
+                predicate: NSPredicate(format: "id == %@", id as NSUUID)
+            ).first else {
+                throw LibraryError.folderNotFound(id)
+            }
+            guard !folder.isDefault else { throw LibraryError.defaultFolderIsFixed }
+
+            let duplicates = try Self.fetch(
+                FolderRecord.self,
+                entity: "Folder",
+                in: context,
+                predicate: NSPredicate(format: "normalizedName == %@ AND id != %@", normalizedName, id as NSUUID)
+            )
+            guard duplicates.isEmpty else { throw LibraryError.duplicateFolderName }
+
+            if !Self.sameScalars(folder.name, displayName) {
+                folder.name = displayName
+                folder.normalizedName = normalizedName
+                folder.modifiedAt = now
+            }
+            return FolderSnapshot(record: folder)
+        }
+    }
+
+    /// Moves an active note to another folder. Moving counts as a content-level change: it updates `modifiedAt`
+    /// and increments the revision. Moving into the folder the note already has changes nothing.
+    func moveNote(id: UUID, expectedRevision: Int64, toFolderID folderID: UUID) async throws -> NoteSnapshot {
+        try await write { context, now in
+            guard let note = try Self.fetch(
+                NoteRecord.self,
+                entity: "Note",
+                in: context,
+                predicate: NSPredicate(format: "id == %@", id as NSUUID)
+            ).first else {
+                throw LibraryError.noteNotFound(id)
+            }
+            guard note.revision == expectedRevision else {
+                throw LibraryError.revisionConflict(id)
+            }
+            guard let folder = try Self.fetch(
+                FolderRecord.self,
+                entity: "Folder",
+                in: context,
+                predicate: NSPredicate(format: "id == %@", folderID as NSUUID)
+            ).first else {
+                throw LibraryError.folderNotFound(folderID)
+            }
+
+            if note.folder?.id != folderID {
+                note.folder = folder
+                note.modifiedAt = now
+                note.revision += 1
+            }
+            return try Self.snapshot(of: note)
+        }
+    }
+
     func createNote(inFolder folderID: UUID, title: String, bodyPlainText: String) async throws -> NoteSnapshot {
         try await write { context, now in
             guard let folder = try Self.fetch(
@@ -153,7 +217,7 @@ actor LibraryRepository: NoteStore {
         }
     }
 
-    /// Active (not trashed) notes. Pass nil to include every folder. Newest modification first.
+    /// Active (not trashed) notes. Pass nil to include every folder. Newest modification first (see `NoteSnapshot.newestFirst`).
     func activeNotes(inFolder folderID: UUID?) async throws -> [NoteSnapshot] {
         try await read { context in
             var predicates = [NSPredicate(format: "deletedAt == nil")]
@@ -164,10 +228,79 @@ actor LibraryRepository: NoteStore {
                 NoteRecord.self,
                 entity: "Note",
                 in: context,
-                predicate: NSCompoundPredicate(andPredicateWithSubpredicates: predicates),
-                sortBy: [NSSortDescriptor(key: "modifiedAt", ascending: false)]
+                predicate: NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
             )
             .map { try Self.snapshot(of: $0) }
+            .sorted(by: NoteSnapshot.newestFirst)
+        }
+    }
+
+
+    /// Soft delete: sets `deletedAt` and bumps the revision. Content, folder, and `modifiedAt` are not changed.
+    /// Nothing is removed from the store.
+    func trashNote(id: UUID, expectedRevision: Int64) async throws -> NoteSnapshot {
+        try await write { context, now in
+            let note = try Self.fetchNote(id: id, in: context)
+            guard note.revision == expectedRevision else { throw LibraryError.revisionConflict(id) }
+            guard note.deletedAt == nil else { throw LibraryError.noteAlreadyDeleted(id) }
+            note.deletedAt = now
+            note.revision += 1
+            return try Self.snapshot(of: note)
+        }
+    }
+
+    /// Clears `deletedAt`. The note returns to the folder it had when it was deleted.
+    func restoreNote(id: UUID, expectedRevision: Int64) async throws -> NoteSnapshot {
+        try await write { context, now in
+            let note = try Self.fetchNote(id: id, in: context)
+            guard note.revision == expectedRevision else { throw LibraryError.revisionConflict(id) }
+            guard note.deletedAt != nil else { throw LibraryError.noteNotDeleted(id) }
+            note.deletedAt = nil
+            note.revision += 1
+            return try Self.snapshot(of: note)
+        }
+    }
+
+    /// Notes in Recently Deleted, most recently deleted first.
+    func deletedNotes() async throws -> [NoteSnapshot] {
+        try await read { context in
+            try Self.fetch(
+                NoteRecord.self,
+                entity: "Note",
+                in: context,
+                predicate: NSPredicate(format: "deletedAt != nil")
+            )
+            .map { try Self.snapshot(of: $0) }
+            .sorted(by: NoteSnapshot.mostRecentlyDeletedFirst)
+        }
+    }
+
+    private static func fetchNote(id: UUID, in context: NSManagedObjectContext) throws -> NoteRecord {
+        guard let note = try fetch(
+            NoteRecord.self,
+            entity: "Note",
+            in: context,
+            predicate: NSPredicate(format: "id == %@", id as NSUUID)
+        ).first else {
+            throw LibraryError.noteNotFound(id)
+        }
+        return note
+    }
+
+    /// Literal substring match over active notes. `CONTAINS` takes the query as a bound value, so wildcards and
+    /// regular-expression characters in user input have no special meaning. Results use the same order as listings.
+    func searchActiveNotes(matching query: String) async throws -> [NoteSnapshot] {
+        try await read { context in
+            let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "deletedAt == nil"),
+                NSCompoundPredicate(orPredicateWithSubpredicates: [
+                    NSPredicate(format: "title CONTAINS[cd] %@", query),
+                    NSPredicate(format: "bodyPlainText CONTAINS[cd] %@", query),
+                ]),
+            ])
+            return try Self.fetch(NoteRecord.self, entity: "Note", in: context, predicate: predicate)
+                .map { try Self.snapshot(of: $0) }
+                .sorted(by: NoteSnapshot.newestFirst)
         }
     }
 

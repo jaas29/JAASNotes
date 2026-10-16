@@ -319,13 +319,13 @@ Use official documentation and verify availability against the chosen SDK during
 
 01-04: Implement revision-aware autosave, immediate save, navigation/close/quit flushing, status, retry, and recovery-copy export. Requires 01-03. Complete when latest edits survive normal restart and delayed/failed saves neither discard drafts nor falsely report Saved; failure can cancel Quit. [COMPLETE]
 
-01-05: Implement folder creation/rename, note moves, list previews/dates, stable default ordering, and empty states. Requires 01-04. Complete when these operations survive restart and invalid folder names or failed moves leave consistent data and selection. [NOT COMPLETE]
+01-05: Implement folder creation/rename, note moves, list previews/dates, stable default ordering, and empty states. Requires 01-04. Complete when these operations survive restart and invalid folder names or failed moves leave consistent data and selection. [COMPLETE]
 
-01-06: Implement literal title/body search, global/current-folder scopes, draft overlay, and stale-result cancellation. Requires 01-05. Complete when Unicode queries find title/body matches, deleted notes are excluded from active scopes, and rapid queries cannot show obsolete results. [NOT COMPLETE]
+01-06: Implement literal title/body search, global/current-folder scopes, draft overlay, and stale-result cancellation. Requires 01-05. Complete when Unicode queries find title/body matches, deleted notes are excluded from active scopes, and rapid queries cannot show obsolete results. [COMPLETE]
 
-01-07: Implement persistent soft deletion, read-only Recently Deleted, and restoration with original-folder preservation. Requires 01-05. Complete when deleting, quitting, relaunching, and restoring reproduces note content/identity and nothing is automatically purged. [NOT COMPLETE]
+01-07: Implement persistent soft deletion, read-only Recently Deleted, and restoration with original-folder preservation. Requires 01-05. Complete when deleting, quitting, relaunching, and restoring reproduces note content/identity and nothing is automatically purged. [COMPLETE]
 
-01-08: Implement quiesced verified backups, retention, backup status, recoverable restore swaps, and store-open failure UI. Requires 01-04 and 01-07. Complete when a snapshot restores into a fresh library and interruption/corruption tests preserve the original without silently creating an empty store. [NOT COMPLETE]
+01-08: Implement quiesced verified backups, retention, backup status, recoverable restore swaps, and store-open failure UI. Requires 01-04 and 01-07. Complete when a snapshot restores into a fresh library and interruption/corruption tests preserve the original without silently creating an empty store. [COMPLETE]
 
 01-09: Complete native menus, focus routing, shortcuts, light/dark behavior, accessible labels, and window reopening. Requires 01-06 through 01-08. Complete when keyboard-only and VoiceOver core workflows work and editor text-delete shortcuts cannot trash a note accidentally. [NOT COMPLETE]
 

@@ -4,6 +4,7 @@ import SwiftUI
 /// Plain-text body editor backed by NSTextView, so native selection, undo, spelling, and input methods all apply.
 struct PlainTextEditor: NSViewRepresentable {
     let text: String
+    var isEditable = true
     let onChange: (String) -> Void
 
     func makeCoordinator() -> PlainTextEditorDelegate {
@@ -14,7 +15,7 @@ struct PlainTextEditor: NSViewRepresentable {
         let textView = NSTextView()
         textView.isRichText = false
         textView.allowsUndo = true
-        textView.isEditable = true
+        textView.isEditable = isEditable
         textView.isSelectable = true
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
@@ -24,6 +25,9 @@ struct PlainTextEditor: NSViewRepresentable {
         textView.textColor = .labelColor
         textView.drawsBackground = false
         textView.textContainerInset = NSSize(width: 8, height: 8)
+        // Cmd-F in the body opens the native find bar (Find in Note).
+        textView.usesFindBar = true
+        textView.isIncrementalSearchingEnabled = true
         textView.setAccessibilityLabel("Note body")
         textView.setAccessibilityIdentifier("noteBody")
         textView.delegate = context.coordinator
@@ -39,6 +43,7 @@ struct PlainTextEditor: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
         context.coordinator.onChange = onChange
+        textView.isEditable = isEditable
 
         // Replacing text during an input-method composition would discard the marked text.
         // The view only needs replacing when the model differs from what is on screen.

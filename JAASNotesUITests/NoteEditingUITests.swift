@@ -147,3 +147,238 @@ final class NoteEditingUITests: XCTestCase {
         XCTAssertEqual(app.textFields["noteTitle"].value as? String, "")
     }
 }
+
+/// Folder rename, note move, and empty folder states through the real window, checked again after relaunch.
+final class FolderUITests: XCTestCase {
+    private let libraryName = UUID().uuidString
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    private func launchApp() -> XCUIApplication {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+        return app
+    }
+
+    @MainActor
+    func testFolderRenameMoveAndEmptyStateSurviveRelaunch() throws {
+        let app = launchApp()
+
+        // Create and rename a folder through the sheet.
+        app.buttons["newFolderButton"].firstMatch.click()
+        let nameField = app.textFields["folderNameField"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5))
+        nameField.click()
+        nameField.typeText("Work")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(app.staticTexts["Work"].firstMatch.waitForExistence(timeout: 5))
+
+        app.staticTexts["Work"].firstMatch.rightClick()
+        app.menuItems["Rename Folder…"].firstMatch.click()
+        let renameField = app.textFields["folderNameField"]
+        XCTAssertTrue(renameField.waitForExistence(timeout: 5))
+        renameField.click()
+        renameField.typeKey("a", modifierFlags: .command)
+        renameField.typeText("Projects")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(app.staticTexts["Projects"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Work"].firstMatch.exists)
+
+        // A note created while Projects is selected belongs to Projects.
+        app.buttons["New Note"].firstMatch.click()
+        let title = app.textFields["noteTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeText("Plan")
+        app.typeKey("s", modifierFlags: .command)
+
+        // Move it to Notes with the Move To toolbar menu.
+        let moveMenu = app.menuButtons["moveToMenu"].firstMatch
+        XCTAssertTrue(moveMenu.waitForExistence(timeout: 5))
+        moveMenu.click()
+        app.menuItems["Notes"].firstMatch.click()
+        XCTAssertTrue(app.staticTexts["No Notes in This Folder"].waitForExistence(timeout: 5),
+                      "Projects should be empty after the move.")
+
+        app.terminate()
+
+        let relaunched = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(relaunched.staticTexts["All Notes"].waitForExistence(timeout: 10))
+        XCTAssertTrue(relaunched.staticTexts["Projects"].firstMatch.waitForExistence(timeout: 5),
+                      "The renamed folder should survive relaunch.")
+        relaunched.staticTexts["Projects"].firstMatch.click()
+        XCTAssertTrue(relaunched.staticTexts["No Notes in This Folder"].waitForExistence(timeout: 5))
+    }
+}
+
+/// Search through the real search field, with a Unicode query and an empty result.
+final class SearchUITests: XCTestCase {
+    private let libraryName = UUID().uuidString
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    func testSearchFindsUnicodeAndShowsEmptyResults() throws {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+
+        app.buttons["New Note"].firstMatch.click()
+        let title = app.textFields["noteTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeText("Café de Mañana")
+        app.typeKey("s", modifierFlags: .command)
+
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.click()
+        search.typeText("cafe")
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "identifier == 'noteRow' AND value BEGINSWITH %@", "Café")
+        ).firstMatch.waitForExistence(timeout: 5), "A diacritic-free query should find the accented title.")
+
+        search.typeKey("a", modifierFlags: .command)
+        search.typeText("zzz-no-match")
+        // The empty-state text is exposed as the value of a static text in the note list.
+        let emptyResults = app.staticTexts.matching(
+            NSPredicate(format: "identifier == 'noteList' AND value BEGINSWITH %@", "No Results")
+        ).firstMatch
+        XCTAssertTrue(emptyResults.waitForExistence(timeout: 5),
+                      "A query with no matches should show an empty result state.")
+    }
+}
+
+/// Delete and restore through the real window, with a relaunch while the note sits in Recently Deleted.
+final class TrashUITests: XCTestCase {
+    private let libraryName = UUID().uuidString
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    private func noteRow(in app: XCUIApplication, startingWith prefix: String) -> XCUIElement {
+        app.staticTexts.matching(
+            NSPredicate(format: "identifier == 'noteRow' AND value BEGINSWITH %@", prefix)
+        ).firstMatch
+    }
+
+    @MainActor
+    func testDeletedNoteSurvivesRelaunchAndCanBeRestored() throws {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+
+        app.buttons["New Note"].firstMatch.click()
+        let title = app.textFields["noteTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeText("Gone note")
+        app.typeKey("s", modifierFlags: .command)
+
+        app.buttons["toolbarDelete"].firstMatch.click()
+        app.staticTexts["Recently Deleted"].firstMatch.click()
+        XCTAssertTrue(noteRow(in: app, startingWith: "Gone note").waitForExistence(timeout: 5))
+
+        app.terminate()
+
+        let relaunched = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(relaunched.staticTexts["Recently Deleted"].firstMatch.waitForExistence(timeout: 10))
+        relaunched.staticTexts["Recently Deleted"].firstMatch.click()
+        let trashedRow = noteRow(in: relaunched, startingWith: "Gone note")
+        XCTAssertTrue(trashedRow.waitForExistence(timeout: 5), "The deleted note should survive relaunch.")
+        trashedRow.click()
+        XCTAssertTrue(relaunched.staticTexts["trashStatus"].waitForExistence(timeout: 5))
+
+        relaunched.buttons["toolbarRestore"].firstMatch.click()
+        XCTAssertFalse(trashedRow.waitForExistence(timeout: 1), "A restored note leaves Recently Deleted.")
+
+        relaunched.staticTexts["All Notes"].firstMatch.click()
+        XCTAssertTrue(noteRow(in: relaunched, startingWith: "Gone note").waitForExistence(timeout: 5),
+                      "The restored note should be back in All Notes.")
+    }
+}
+
+/// Menu shortcuts and the rule that Cmd-Delete belongs to the text while the caret is in an editor.
+final class KeyboardUITests: XCTestCase {
+    private let libraryName = UUID().uuidString
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    private func launchApp() -> XCUIApplication {
+        let app = launchIsolatedApp(libraryName: libraryName, testCase: self)
+        XCTAssertTrue(app.staticTexts["All Notes"].waitForExistence(timeout: 10))
+        return app
+    }
+
+    @MainActor
+    private func noteRow(in app: XCUIApplication, startingWith prefix: String) -> XCUIElement {
+        app.staticTexts.matching(
+            NSPredicate(format: "identifier == 'noteRow' AND value BEGINSWITH %@", prefix)
+        ).firstMatch
+    }
+
+    @MainActor
+    func testShiftCommandNOpensTheNewFolderSheet() throws {
+        let app = launchApp()
+        app.typeKey("n", modifierFlags: [.command, .shift])
+        XCTAssertTrue(app.textFields["folderNameField"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testCommandDeleteInTheBodyEditsTextAndKeepsTheNote() throws {
+        let app = launchApp()
+        app.buttons["New Note"].firstMatch.click()
+        let title = app.textFields["noteTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeText("Keep this note")
+        app.typeKey("s", modifierFlags: .command)
+
+        let body = app.textViews["noteBody"]
+        body.click()
+        body.typeText("some words")
+        app.typeKey(.delete, modifierFlags: .command)
+
+        XCTAssertTrue(noteRow(in: app, startingWith: "Keep this").waitForExistence(timeout: 5),
+                      "Cmd-Delete in the editor must not move the note to Recently Deleted.")
+    }
+
+    @MainActor
+    func testCommandDeleteInTheNoteListMovesTheSelectedNote() throws {
+        let app = launchApp()
+        app.buttons["New Note"].firstMatch.click()
+        let title = app.textFields["noteTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.click()
+        title.typeText("Trash via key")
+        app.typeKey("s", modifierFlags: .command)
+
+        noteRow(in: app, startingWith: "Trash via key").click()
+        app.typeKey(.delete, modifierFlags: .command)
+
+        XCTAssertFalse(noteRow(in: app, startingWith: "Trash via key").waitForExistence(timeout: 2),
+                       "Cmd-Delete with the note list focused should move the note to Recently Deleted.")
+        app.staticTexts["Recently Deleted"].firstMatch.click()
+        XCTAssertTrue(noteRow(in: app, startingWith: "Trash via key").waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testShiftCommandFFocusesSearch() throws {
+        let app = launchApp()
+        app.typeKey("f", modifierFlags: [.command, .shift])
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasKeyboardFocus == true"), object: search)], timeout: 5) == .completed,
+            "Shift-Cmd-F should put the caret in the search field."
+        )
+    }
+}

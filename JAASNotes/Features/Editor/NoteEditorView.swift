@@ -8,6 +8,11 @@ struct NoteEditorView: View {
 
     @FocusState private var isTitleFocused: Bool
 
+    /// Trashed notes are shown read-only, with Restore instead of save controls.
+    private var isReadOnly: Bool {
+        note.deletedAt != nil
+    }
+
     var body: some View {
         let draft = model.draft(for: note)
 
@@ -24,13 +29,18 @@ struct NoteEditorView: View {
             .padding(.horizontal, 12)
             .padding(.top, 12)
             .focused($isTitleFocused)
+            .disabled(isReadOnly)
             .accessibilityIdentifier("noteTitle")
 
-            PlainTextEditor(text: draft.bodyPlainText) { body in
+            PlainTextEditor(text: draft.bodyPlainText, isEditable: !isReadOnly) { body in
                 model.updateDraft(for: note.id, body: body)
             }
 
-            SaveStatusLine(model: model, status: model.saveStatus(for: note.id))
+            if let deletedAt = note.deletedAt {
+                TrashStatusLine(model: model, noteID: note.id, deletedAt: deletedAt)
+            } else {
+                SaveStatusLine(model: model, status: model.saveStatus(for: note.id))
+            }
         }
         .task(id: note.id) {
             // Runs after the view is installed, so a freshly created note reliably takes focus.
@@ -40,6 +50,32 @@ struct NoteEditorView: View {
             await Task.yield()
             isTitleFocused = true
         }
+    }
+}
+
+/// Explains a trashed note and offers Restore. Its content is read-only until it is restored.
+private struct TrashStatusLine: View {
+    let model: LibraryModel
+    let noteID: UUID
+    let deletedAt: Date
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("Deleted \(deletedAt.formatted(date: .abbreviated, time: .shortened)). Read-only.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("trashStatus")
+
+            Spacer()
+
+            Button("Restore") {
+                Task { await model.restoreNote(noteID) }
+            }
+            .accessibilityIdentifier("restoreNote")
+        }
+        .controlSize(.small)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
 }
 

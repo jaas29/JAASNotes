@@ -29,5 +29,33 @@ actor DebugSaveFailureStore: NoteStore {
     func createNote(inFolder folderID: UUID, title: String, bodyPlainText: String) async throws -> NoteSnapshot {
         try await base.createNote(inFolder: folderID, title: title, bodyPlainText: bodyPlainText)
     }
+
+    func searchActiveNotes(matching query: String) async throws -> [NoteSnapshot] {
+        try await base.searchActiveNotes(matching: query)
+    }
+
+    func trashNote(id: UUID, expectedRevision: Int64) async throws -> NoteSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func restoreNote(id: UUID, expectedRevision: Int64) async throws -> NoteSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func deletedNotes() async throws -> [NoteSnapshot] {
+        try await base.deletedNotes()
+    }
+
+    func createFolder(named name: String) async throws -> FolderSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func renameFolder(id: UUID, to name: String) async throws -> FolderSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func moveNote(id: UUID, expectedRevision: Int64, toFolderID folderID: UUID) async throws -> NoteSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
 }
 #endif

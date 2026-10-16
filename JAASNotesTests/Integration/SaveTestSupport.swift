@@ -7,6 +7,11 @@ import XCTest
 actor FaultyNoteStore: NoteStore {
     private let base: NoteStore
     private var failuresRemaining = 0
+    private var structuralFailuresRemaining = 0
+    private var heldSearchQueries: Set<String> = []
+    private var heldSearchesReached: Set<String> = []
+    private var heldSearchWaiters: [(query: String, continuation: CheckedContinuation<Void, Never>)] = []
+    private var heldSearchContinuations: [String: CheckedContinuation<Void, Never>] = [:]
     private var shouldPauseNextUpdate = false
     private var isPaused = false
     private var pauseWaiters: [CheckedContinuation<Void, Never>] = []
@@ -18,6 +23,39 @@ actor FaultyNoteStore: NoteStore {
 
     func failNextUpdates(_ count: Int) {
         failuresRemaining = count
+    }
+
+    /// The next search for `query` stops before querying and waits for `releaseSearch(for:)`.
+    /// Lets tests finish an older search after a newer one.
+    func holdSearch(for query: String) {
+        heldSearchQueries.insert(query)
+    }
+
+    /// Returns once a search for `query` has reached its hold point.
+    func waitUntilSearchIsHeld(for query: String) async {
+        if heldSearchesReached.contains(query) { return }
+        await withCheckedContinuation { heldSearchWaiters.append((query, $0)) }
+    }
+
+    func releaseSearch(for query: String) {
+        heldSearchQueries.remove(query)
+        heldSearchContinuations.removeValue(forKey: query)?.resume()
+    }
+
+    func searchActiveNotes(matching query: String) async throws -> [NoteSnapshot] {
+        if heldSearchQueries.contains(query) {
+            heldSearchesReached.insert(query)
+            let ready = heldSearchWaiters.filter { $0.query == query }
+            heldSearchWaiters.removeAll { $0.query == query }
+            ready.forEach { $0.continuation.resume() }
+            await withCheckedContinuation { heldSearchContinuations[query] = $0 }
+        }
+        return try await base.searchActiveNotes(matching: query)
+    }
+
+    /// Fails the next folder or move writes. Lets tests check that a failed structural change leaves data unchanged.
+    func failNextStructuralWrites(_ count: Int) {
+        structuralFailuresRemaining = count
     }
 
     /// The next `updateNote` stops before writing and waits for `resumeUpdate()`.
@@ -70,6 +108,41 @@ actor FaultyNoteStore: NoteStore {
 
     func createNote(inFolder folderID: UUID, title: String, bodyPlainText: String) async throws -> NoteSnapshot {
         try await base.createNote(inFolder: folderID, title: title, bodyPlainText: bodyPlainText)
+    }
+
+    func createFolder(named name: String) async throws -> FolderSnapshot {
+        try failIfInjected()
+        return try await base.createFolder(named: name)
+    }
+
+    func renameFolder(id: UUID, to name: String) async throws -> FolderSnapshot {
+        try failIfInjected()
+        return try await base.renameFolder(id: id, to: name)
+    }
+
+    func moveNote(id: UUID, expectedRevision: Int64, toFolderID folderID: UUID) async throws -> NoteSnapshot {
+        try failIfInjected()
+        return try await base.moveNote(id: id, expectedRevision: expectedRevision, toFolderID: folderID)
+    }
+
+    func trashNote(id: UUID, expectedRevision: Int64) async throws -> NoteSnapshot {
+        try failIfInjected()
+        return try await base.trashNote(id: id, expectedRevision: expectedRevision)
+    }
+
+    func restoreNote(id: UUID, expectedRevision: Int64) async throws -> NoteSnapshot {
+        try failIfInjected()
+        return try await base.restoreNote(id: id, expectedRevision: expectedRevision)
+    }
+
+    func deletedNotes() async throws -> [NoteSnapshot] {
+        try await base.deletedNotes()
+    }
+
+    private func failIfInjected() throws {
+        guard structuralFailuresRemaining > 0 else { return }
+        structuralFailuresRemaining -= 1
+        throw LibraryError.saveFailed("Injected structural write failure.")
     }
 }
 

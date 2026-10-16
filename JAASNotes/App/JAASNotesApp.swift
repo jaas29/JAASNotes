@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -9,20 +10,118 @@ struct JAASNotesApp: App {
             LibraryShellView(model: appDelegate.model)
         }
         .commands {
+            let model = appDelegate.model
+
             CommandGroup(replacing: .newItem) {
                 Button("New Note") {
-                    Task { await appDelegate.model.createNote() }
+                    Task { await model.createNote() }
                 }
                 .keyboardShortcut("n", modifiers: .command)
-                .disabled(appDelegate.model.phase != .ready)
+                .disabled(model.phase != .ready)
+
+                Button("New Folder") {
+                    model.folderSheetRequest = .create
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(model.phase != .ready)
             }
+
+            CommandGroup(after: .newItem) {
+                Divider()
+
+                Button("Rename Folder…") {
+                    if case .folder(let folderID) = model.sidebarSelection {
+                        model.folderSheetRequest = .rename(folderID)
+                    }
+                }
+                .disabled(!isUserFolderSelected(model))
+
+                Menu("Move Note To") {
+                    ForEach(model.folders) { folder in
+                        Button(folder.name) {
+                            if let noteID = model.selectedNoteID {
+                                Task { await model.moveNote(noteID, toFolder: folder.id) }
+                            }
+                        }
+                        .disabled(model.selectedNote?.folderID == folder.id)
+                    }
+                }
+                .disabled(model.selectedNote == nil || model.isShowingRecentlyDeleted)
+
+                Button("Move to Recently Deleted") {
+                    trashSelectedNote(model)
+                }
+                .keyboardShortcut(.delete, modifiers: .command)
+                .disabled(model.selectedNote == nil || model.isShowingRecentlyDeleted)
+
+                Button("Restore Note") {
+                    if let noteID = model.selectedNoteID {
+                        Task { await model.restoreNote(noteID) }
+                    }
+                }
+                .disabled(!model.isShowingRecentlyDeleted || model.selectedNote == nil)
+
+                Divider()
+
+                Button("Backups…") {
+                    model.backupsSheetRequested = true
+                }
+                .disabled(model.phase != .ready)
+            }
+
             CommandGroup(replacing: .saveItem) {
                 Button("Save") {
-                    Task { await appDelegate.model.flushPendingDrafts() }
+                    Task { await model.flushPendingDrafts() }
                 }
                 .keyboardShortcut("s", modifiers: .command)
-                .disabled(appDelegate.model.phase != .ready)
+                .disabled(model.phase != .ready)
+            }
+
+            CommandGroup(after: .textEditing) {
+                Button("Find in Note…") {
+                    // The native text finder handles Find in the focused text view.
+                    let item = NSMenuItem()
+                    item.tag = NSTextFinder.Action.showFindInterface.rawValue
+                    NSApp.sendAction(#selector(NSTextView.performTextFinderAction(_:)), to: nil, from: item)
+                }
+                .keyboardShortcut("f", modifiers: .command)
+
+                Button("Search Notes") {
+                    model.searchFocusRequested = true
+                }
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .disabled(model.phase != .ready)
+            }
+
+            CommandGroup(after: .sidebar) {
+                Button("All Notes") {
+                    Task { await model.requestSidebarSelection(.allNotes) }
+                }
+                .keyboardShortcut("1", modifiers: .command)
+                .disabled(model.phase != .ready)
+
+                Button("Recently Deleted") {
+                    Task { await model.requestSidebarSelection(.recentlyDeleted) }
+                }
+                .keyboardShortcut("2", modifiers: .command)
+                .disabled(model.phase != .ready)
             }
         }
+    }
+
+    private func isUserFolderSelected(_ model: LibraryModel) -> Bool {
+        guard case .folder(let folderID) = model.sidebarSelection else { return false }
+        return model.folders.first { $0.id == folderID }.map { !$0.isDefault } ?? false
+    }
+
+    /// Cmd-Delete belongs to the text when the caret is in a text field. Only the note list gets the trash action.
+    @MainActor
+    private func trashSelectedNote(_ model: LibraryModel) {
+        if NSApp.keyWindow?.firstResponder is NSTextView {
+            NSApp.sendAction(#selector(NSResponder.deleteToBeginningOfLine(_:)), to: nil, from: nil)
+            return
+        }
+        guard let noteID = model.selectedNoteID else { return }
+        Task { await model.trashNote(noteID) }
     }
 }
