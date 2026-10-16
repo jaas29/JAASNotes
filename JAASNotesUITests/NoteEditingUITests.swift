@@ -196,9 +196,12 @@ final class FolderUITests: XCTestCase {
         app.typeKey("s", modifierFlags: .command)
 
         // Move it to Notes with the Move To toolbar menu.
-        let moveMenu = app.menuButtons["moveToMenu"].firstMatch
-        XCTAssertTrue(moveMenu.waitForExistence(timeout: 5))
-        moveMenu.click()
+        // The row's context menu lists the same folders as the toolbar menu, and it opens reliably on CI runners.
+        let row = app.staticTexts.matching(
+            NSPredicate(format: "identifier == 'noteRow' AND value BEGINSWITH %@", "Plan")
+        ).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.rightClick()
         app.menuItems["Notes"].firstMatch.click()
         XCTAssertTrue(app.staticTexts["No Notes in This Folder"].waitForExistence(timeout: 5),
                       "Projects should be empty after the move.")
