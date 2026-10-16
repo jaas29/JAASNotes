@@ -8,7 +8,7 @@ JAASNotes is an independent, native macOS notes app. It is in early development.
 - **Stage 3 (rich text and checklists): complete**, including the owner's VoiceOver and keyboard pass.
 - **Stage 4 (attachments, interchange, release readiness): in progress.**
   - Done: attachments (copied into the library with checksums, an attachment tray with previews, Open, Save Copy, and Remove, and a missing-file state); portable archive export and import with a review step; plain text and RTF import and export for single notes; an original app icon.
-  - Not done: the owner's license choice (MIT is recommended, but no LICENSE file is added until you confirm it), a signed release build with your Developer team, and a manual VoiceOver walkthrough of the attachment tray and the archive dialogs. See `docs/progress.md`.
+  - Not done: a signed release build with a Developer team, and a manual VoiceOver walkthrough of the attachment tray and the archive dialogs. See `docs/progress.md`.
 
 ## Requirements
 
@@ -69,6 +69,10 @@ Do not edit these files while the app is open, and do not put the library in a s
 - An **automatic** backup is taken at most once a day, after the library changes.
 - Before a restore, the current library is backed up if it can be read. The replaced library is moved into `Recovery/`, not deleted.
 - If the library cannot open, the app shows a recovery screen: Retry, Restore From Backup, Save Diagnostic Info (versions, file sizes, and counts; no note text), or Create New Library (the old library is kept in `Recovery/`).
+
+## License
+
+MIT. See `LICENSE`.
 
 ## Privacy
 

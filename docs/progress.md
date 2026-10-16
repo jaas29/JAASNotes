@@ -791,3 +791,8 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - **Compatibility evidence:** only macOS 26.6.2 on Apple M3 Pro with Xcode 26.3 has been tested. macOS 14 and Intel are untested.
 - **Manual accessibility pass of Stage 4 controls:** the attachment tray and the archive dialogs have not been walked through with VoiceOver.
 - **CI:** `.github/workflows/ci.yml` has not been run on this code.
+
+### License update
+
+- The owner chose the MIT license. `LICENSE` is added with the copyright holder "JAASNotes contributors". Change that line if you want a personal name in it.
+- 04-04 still needs the signed release build and the manual VoiceOver pass of the Stage 4 controls.
