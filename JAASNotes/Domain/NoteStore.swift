@@ -1,7 +1,7 @@
 import Foundation
 
 /// The durable operations the app needs. `LibraryRepository` implements them. Tests wrap it to inject failures.
-protocol NoteStore: Sendable {
+protocol NoteStore: AttachmentStore {
     func initializeLibraryIfNeeded() async throws -> LibraryMetadataSnapshot
     func folders() async throws -> [FolderSnapshot]
     func activeNotes(inFolder folderID: UUID?) async throws -> [NoteSnapshot]

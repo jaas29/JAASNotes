@@ -15,6 +15,31 @@ struct FolderSnapshot: Equatable, Sendable, Identifiable {
     let isDefault: Bool
 }
 
+/// A file copied into the library and attached to a note. The bytes are never referenced by an absolute path.
+struct AttachmentSnapshot: Equatable, Sendable, Identifiable {
+    let id: UUID
+    let noteID: UUID
+    let originalFilename: String
+    let contentType: String
+    let byteCount: Int64
+    let sha256: String
+    /// Relative to the library folder, for example `Attachments/<id>/payload`.
+    let relativePath: String
+    let createdAt: Date
+    let displayOrder: Int
+}
+
+/// What a new attachment row needs once its payload is in place.
+struct NewAttachment: Equatable, Sendable {
+    let id: UUID
+    let noteID: UUID
+    let originalFilename: String
+    let contentType: String
+    let byteCount: Int64
+    let sha256: String
+    let relativePath: String
+}
+
 struct NoteSnapshot: Equatable, Sendable, Identifiable {
     let id: UUID
     let folderID: UUID
@@ -66,6 +91,7 @@ enum LibraryError: Error, Equatable, Sendable {
     case richContentRequiresRichUpdate(UUID)
     case richContentUnreadable(UUID)
     case recoveryCopyNotNeeded(UUID)
+    case attachmentNotFound(UUID)
 }
 
 extension LibraryError: LocalizedError {
@@ -102,6 +128,8 @@ extension LibraryError: LocalizedError {
             "This note's formatting could not be read, so it was not changed. Make a recovery copy to keep its text."
         case .recoveryCopyNotNeeded:
             "This note opens normally, so no recovery copy is needed."
+        case .attachmentNotFound:
+            "The attachment no longer exists."
         }
     }
 }

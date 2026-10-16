@@ -11,7 +11,7 @@ enum LibraryMigrationService {
     }
 
     /// Earlier model versions this app can upgrade from, newest first. Each is a compiled model in the bundle.
-    static let priorModelNames = ["JAASNotes 2", "JAASNotes"]
+    static let priorModelNames = ["JAASNotes 3", "JAASNotes 2", "JAASNotes"]
 
     /// Upgrades the library at `location` when it was written by an earlier version. Returns true when an upgrade happened.
     /// A store that matches neither the current model nor a prior version is refused and left unchanged.
@@ -64,6 +64,11 @@ enum LibraryMigrationService {
             try fileManager.createDirectory(at: candidateLibrary, withIntermediateDirectories: true)
             let candidateStore = candidateLibrary.appending(path: "Store.sqlite", directoryHint: .notDirectory)
             try upgrade(from: sourceStore, sourceModel: legacy, to: candidateStore, destinationModel: current)
+            // The candidate replaces the whole library folder on install, so the attachment payloads must come with it.
+            let attachments = AttachmentService.attachmentsDirectory(in: location)
+            if fileManager.fileExists(atPath: attachments.path) {
+                try fileManager.copyItem(at: attachments, to: candidateLibrary.appending(path: AttachmentService.attachmentsFolderName, directoryHint: .isDirectory))
+            }
             try await stampFormatVersion(LibraryRepository.currentFormatVersion, in: LibraryLocation(rootURL: folder))
 
             // The upgrade must not change any note or folder.

@@ -1,3 +1,4 @@
+import AppKit
 import CoreData
 import Foundation
 import Observation
@@ -703,6 +704,141 @@ final class LibraryModel {
         savingNoteIDs = []
     }
 
+    // MARK: - Attachments
+
+    /// Attachments per note, in display order. Loaded when a note is shown; updated by every attachment change.
+    private(set) var attachmentsByNote: [UUID: [AttachmentSnapshot]] = [:]
+    /// Attachments whose bytes are missing or the wrong size. Their rows are kept, and the tray says so.
+    private(set) var missingAttachmentIDs: Set<UUID> = []
+
+    func attachments(for noteID: UUID) -> [AttachmentSnapshot] {
+        attachmentsByNote[noteID] ?? []
+    }
+
+    /// Reads a note's attachments and checks each file. Safe to call repeatedly.
+    func loadAttachments(for noteID: UUID) async {
+        guard let store = activeStore, let location else { return }
+        do {
+            let rows = try await store.attachments(forNote: noteID)
+            attachmentsByNote[noteID] = rows
+            for row in rows {
+                if Self.payloadIsIntact(row, in: location) {
+                    missingAttachmentIDs.remove(row.id)
+                } else {
+                    missingAttachmentIDs.insert(row.id)
+                }
+            }
+        } catch {
+            operationError = Self.message(for: error)
+        }
+    }
+
+    /// Copies a file into the note. Pending text is not affected: attaching does not change the note's text or revision.
+    @discardableResult
+    func attachFile(at source: URL, to noteID: UUID) async -> Bool {
+        guard let store = activeStore, let location else { return false }
+        do {
+            _ = try await AttachmentService.importFile(at: source, noteID: noteID, location: location, store: store)
+            await loadAttachments(for: noteID)
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
+    /// Deletes an attachment's row, then its bytes. Trashing a note never does this; only the user removing it does.
+    @discardableResult
+    func removeAttachment(_ attachmentID: UUID, from noteID: UUID) async -> Bool {
+        guard let store = activeStore, let location else { return false }
+        do {
+            try await store.deleteAttachment(id: attachmentID)
+            AttachmentService.removePayloads(of: [attachmentID], location: location)
+            missingAttachmentIDs.remove(attachmentID)
+            await loadAttachments(for: noteID)
+            return true
+        } catch {
+            operationError = Self.message(for: error)
+            return false
+        }
+    }
+
+    /// Where an attachment's bytes are in the library. Nil only when the library is not open.
+    func attachmentFileURL(for attachment: AttachmentSnapshot) -> URL? {
+        guard let location, AttachmentService.isSafeRelativePath(attachment.relativePath) else { return nil }
+        return location.libraryDirectoryURL.appending(path: attachment.relativePath, directoryHint: .notDirectory)
+    }
+
+    /// Copies the attachment to a user-chosen file after checking it. Damaged bytes are never exported as if they were good.
+    @discardableResult
+    func exportAttachment(_ attachment: AttachmentSnapshot, to destination: URL) -> Bool {
+        guard let source = attachmentFileURL(for: attachment), !missingAttachmentIDs.contains(attachment.id) else {
+            operationError = "This attachment's file is missing, so it cannot be exported."
+            return false
+        }
+        do {
+            guard try LibraryBackupService.sha256(of: source) == attachment.sha256 else {
+                operationError = "This attachment does not match its checksum, so it was not exported."
+                return false
+            }
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.copyItem(at: source, to: destination)
+            return true
+        } catch {
+            operationError = "The attachment could not be exported. \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// Opens a copy of the attachment in the app that handles its type. The copy lives in staging with its own name;
+    /// the library's bytes are never handed to another app.
+    @discardableResult
+    func openAttachment(_ attachment: AttachmentSnapshot) -> Bool {
+        guard let source = attachmentFileURL(for: attachment), let location, !missingAttachmentIDs.contains(attachment.id) else {
+            operationError = "This attachment's file is missing, so it cannot be opened."
+            return false
+        }
+        do {
+            guard try LibraryBackupService.sha256(of: source) == attachment.sha256 else {
+                operationError = "This attachment does not match its checksum, so it was not opened."
+                return false
+            }
+            let folder = LibraryBackupService.stagingDirectory(in: location)
+                .appending(path: "opened-\(attachment.id.uuidString)", directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let name = attachment.originalFilename.replacingOccurrences(of: "/", with: "_")
+            let copy = folder.appending(path: name.isEmpty ? "attachment" : name, directoryHint: .notDirectory)
+            if FileManager.default.fileExists(atPath: copy.path) {
+                try FileManager.default.removeItem(at: copy)
+            }
+            try FileManager.default.copyItem(at: source, to: copy)
+            return NSWorkspace.shared.open(copy)
+        } catch {
+            operationError = "The attachment could not be opened. \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// Checks every attachment's file at launch, and moves bytes that have no row into Recovery.
+    func reconcileAttachments() async {
+        guard let store = activeStore, let location else { return }
+        do {
+            let result = try await AttachmentService.reconcile(location: location, store: store)
+            missingAttachmentIDs = Set(result.damagedAttachmentIDs)
+        } catch {
+            operationError = Self.message(for: error)
+        }
+    }
+
+    private static func payloadIsIntact(_ row: AttachmentSnapshot, in location: LibraryLocation) -> Bool {
+        guard AttachmentService.isSafeRelativePath(row.relativePath) else { return false }
+        let url = location.libraryDirectoryURL.appending(path: row.relativePath, directoryHint: .notDirectory)
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        return (attributes?[.size] as? NSNumber)?.int64Value == row.byteCount
+    }
+
     /// Creates a plain-text copy of an unreadable note in the same folder and selects it. The original is not changed.
     func makeRecoveryCopy(for noteID: UUID) async -> Bool {
         guard let store = activeStore else { return false }
@@ -826,9 +962,16 @@ final class LibraryModel {
         // The backup reopens the store, so fetch the current one now.
         guard let store = activeStore else { return false }
         do {
+            var payloadIDs: [UUID] = []
             for noteID in noteIDs {
                 guard let note = deletedNotes.first(where: { $0.id == noteID }) else { continue }
+                payloadIDs += try await store.attachments(forNote: noteID).map(\.id)
                 try await store.permanentlyDeleteNote(id: noteID, expectedRevision: note.revision)
+                attachmentsByNote[noteID] = nil
+            }
+            // The rows are gone now, so their bytes can go. Anything left behind is reconciled at the next launch.
+            if let location {
+                AttachmentService.removePayloads(of: payloadIDs, location: location)
             }
             try await refresh()
             dropSelectionOutsideVisibleNotes()
@@ -893,6 +1036,7 @@ final class LibraryModel {
             let container = try await CoreDataStack.openContainer(at: location)
             self.container = container
             await load(store: makeStore(for: container))
+            await reconcileAttachments()
             refreshBackups()
         } catch {
             phase = .failed(Self.message(for: error))

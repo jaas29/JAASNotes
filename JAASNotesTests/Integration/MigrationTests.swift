@@ -96,9 +96,9 @@ final class MigrationTests: XCTestCase {
     }
 
     /// Writes a version-2 library with the version-2 model itself: a pinned note, a trashed note, and Unicode text.
-    private func installVersionTwoLibrary(_ location: LibraryLocation) throws -> (pinnedID: UUID, trashedID: UUID) {
+    private func installPriorLibrary(_ location: LibraryLocation, modelName: String, formatVersion: Int32) throws -> (pinnedID: UUID, trashedID: UUID) {
         try FileManager.default.createDirectory(at: location.libraryDirectoryURL, withIntermediateDirectories: true)
-        let model = try CoreDataStack.model(named: "JAASNotes 2")
+        let model = try CoreDataStack.model(named: modelName)
         let container = NSPersistentContainer(name: "JAASNotes", managedObjectModel: model)
         let description = NSPersistentStoreDescription(url: location.storeURL)
         description.type = NSSQLiteStoreType
@@ -112,7 +112,7 @@ final class MigrationTests: XCTestCase {
         let metadata = NSEntityDescription.insertNewObject(forEntityName: "LibraryMetadata", into: context)
         metadata.setValue(UUID(), forKey: "libraryID")
         metadata.setValue(date, forKey: "createdAt")
-        metadata.setValue(Int32(2), forKey: "formatVersion")
+        metadata.setValue(formatVersion, forKey: "formatVersion")
 
         let folder = NSEntityDescription.insertNewObject(forEntityName: "Folder", into: context)
         let folderID = UUID()
@@ -144,9 +144,31 @@ final class MigrationTests: XCTestCase {
         return (pinnedID, trashedID)
     }
 
+    func testVersionThreeLibraryUpgradesWithContentUnchanged() async throws {
+        let location = makeLocation()
+        let ids = try installPriorLibrary(location, modelName: "JAASNotes 3", formatVersion: 3)
+
+        let upgraded = try await LibraryMigrationService.migrateIfNeeded(location)
+
+        XCTAssertTrue(upgraded)
+        let container = try await CoreDataStack.openContainer(at: location)
+        defer { try? CoreDataStack.close(container) }
+        let repository = LibraryRepository(container: container)
+        let version = try await repository.libraryMetadata()?.formatVersion
+        XCTAssertEqual(version, 4)
+        let active = try await repository.activeNotes(inFolder: nil)
+        let pinned = try XCTUnwrap(active.first { $0.id == ids.pinnedID })
+        XCTAssertEqual(pinned.bodyPlainText, "Body 日本語 🧪\nSecond line")
+        XCTAssertFalse(pinned.hasRichContent)
+        let attachments = try await repository.allAttachments()
+        XCTAssertTrue(attachments.isEmpty, "Version 3 had no attachments, so none appear.")
+        let deleted = try await repository.deletedNotes().map(\.id)
+        XCTAssertEqual(deleted, [ids.trashedID])
+    }
+
     func testVersionTwoLibraryUpgradesWithPinsAndTextUnchanged() async throws {
         let location = makeLocation()
-        let ids = try installVersionTwoLibrary(location)
+        let ids = try installPriorLibrary(location, modelName: "JAASNotes 2", formatVersion: 2)
 
         let upgraded = try await LibraryMigrationService.migrateIfNeeded(location)
 

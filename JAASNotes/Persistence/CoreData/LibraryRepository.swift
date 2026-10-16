@@ -5,7 +5,7 @@ import Foundation
 /// is saved to the persistent store before it returns. Callers receive value snapshots only.
 actor LibraryRepository: NoteStore {
     static let defaultFolderName = "Notes"
-    static let currentFormatVersion = 3
+    static let currentFormatVersion = 4
 
     private let context: NSManagedObjectContext
     private let now: @Sendable () -> Date
@@ -444,6 +444,89 @@ actor LibraryRepository: NoteStore {
         }
     }
 
+    // MARK: - Attachments
+
+    /// Records an attachment whose payload is already in place. Attachments do not change the note's revision or dates,
+    /// so an open editor's next save is not reported as a conflict.
+    func createAttachment(_ new: NewAttachment) async throws -> AttachmentSnapshot {
+        try await write { context, now in
+            guard let note = try Self.fetch(
+                NoteRecord.self,
+                entity: "Note",
+                in: context,
+                predicate: NSPredicate(format: "id == %@", new.noteID as NSUUID)
+            ).first else {
+                throw LibraryError.noteNotFound(new.noteID)
+            }
+            let existing = (note.attachments as? Set<AttachmentRecord>) ?? []
+
+            let record = Self.insert(AttachmentRecord.self, entity: "Attachment", in: context)
+            record.id = new.id
+            record.originalFilename = new.originalFilename
+            record.contentType = new.contentType
+            record.byteCount = new.byteCount
+            record.sha256 = new.sha256
+            record.relativePath = new.relativePath
+            record.createdAt = now
+            record.displayOrder = Int32((existing.map(\.displayOrder).max() ?? -1) + 1)
+            record.note = note
+            return try Self.attachmentSnapshot(of: record)
+        }
+    }
+
+    /// Attachments of one note, in display order. Trashed notes keep theirs.
+    func attachments(forNote noteID: UUID) async throws -> [AttachmentSnapshot] {
+        try await read { context in
+            let records = try Self.fetch(
+                AttachmentRecord.self,
+                entity: "Attachment",
+                in: context,
+                predicate: NSPredicate(format: "note.id == %@", noteID as NSUUID),
+                sortBy: [NSSortDescriptor(key: "displayOrder", ascending: true)]
+            )
+            return try records.map(Self.attachmentSnapshot(of:))
+        }
+    }
+
+    /// Every attachment in the library. Used by backups and reconciliation.
+    func allAttachments() async throws -> [AttachmentSnapshot] {
+        try await read { context in
+            try Self.fetch(AttachmentRecord.self, entity: "Attachment", in: context).map(Self.attachmentSnapshot(of:))
+        }
+    }
+
+    /// Removes an attachment's row. The payload is removed separately, after this has committed.
+    func deleteAttachment(id: UUID) async throws {
+        try await write { context, _ in
+            guard let record = try Self.fetch(
+                AttachmentRecord.self,
+                entity: "Attachment",
+                in: context,
+                predicate: NSPredicate(format: "id == %@", id as NSUUID)
+            ).first else {
+                throw LibraryError.attachmentNotFound(id)
+            }
+            context.delete(record)
+        }
+    }
+
+    private static func attachmentSnapshot(of record: AttachmentRecord) throws -> AttachmentSnapshot {
+        guard let noteID = record.note?.id else {
+            throw LibraryError.libraryInconsistent("An attachment is missing its note.")
+        }
+        return AttachmentSnapshot(
+            id: record.id,
+            noteID: noteID,
+            originalFilename: record.originalFilename,
+            contentType: record.contentType,
+            byteCount: record.byteCount,
+            sha256: record.sha256,
+            relativePath: record.relativePath,
+            createdAt: record.createdAt,
+            displayOrder: Int(record.displayOrder)
+        )
+    }
+
     // MARK: - Transaction helpers
 
     /// Runs one mutation and saves it. Any failure rolls the context back so no partial state stays in memory.
@@ -544,6 +627,8 @@ actor LibraryRepository: NoteStore {
         )
     }
 }
+
+extension LibraryRepository: AttachmentStore {}
 
 // MARK: - Record-to-snapshot mapping
 

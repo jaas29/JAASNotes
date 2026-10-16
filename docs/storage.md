@@ -17,6 +17,7 @@ Application Support/JAASNotes/          (sandbox container; tests use a temporar
   - `Note`: `isPinned` (version 2); `contentFormatVersion`, `richTextData`, `checklistData` (version 3).
 - `contentFormatVersion` is 0 for plain-text notes and 1 for notes with a rich body. A rich note keeps its plain text in `bodyPlainText`, which search and previews read.
 - `richTextData` is RTF, limited to 16 MiB and to text and formatting (no attachments). `checklistData` is a versioned JSON sidecar of items: stable UUID, checked state, and a UTF-16 paragraph range in the plain text. Both are ordinary attributes, not external binary storage, so a backup's copy of `Store.sqlite` contains them.
+- Version 4 adds `Attachment` (metadata only) and `Note.attachments` (cascade delete). The bytes live in `Library/Attachments/<UUID>/payload`, never in the store. A row's `relativePath` is always `Attachments/<UUID>/payload`; `AttachmentService.isSafeRelativePath` refuses anything else.
 - Upgrades run only from a known prior version (`LibraryMigrationService.priorModelNames`). A store that matches neither the current model nor a prior one is refused before any write.
 - Upgrades do not convert notes to rich text. A note becomes rich on its first rich save.
 - A store is only opened after its metadata matches the bundled model (`CoreDataStack.checkCompatibility`); a file without Core Data's `Z_METADATA` table is refused before any write.
@@ -50,5 +51,7 @@ If step 4–5 fails, the code rolls back. If the process dies, `recoverInterrupt
 
 - Snapshots copy a closed store; the library is unavailable for that short copy.
 - `Recovery/` is never pruned automatically.
-- Attachments and archives are not part of the store yet (Stage 4). Inline pictures and files are refused before a save, because RTF writing would otherwise drop them silently.
+- Attachments: payloads are copied into `Library/Attachments/`, hashed (SHA-256), and size-limited to 100 MiB per file. Backups copy the folder and checksum every payload; validation refuses a backup whose payload is missing, the wrong size, or has a different checksum.
+- Inline pictures and files in the text are still refused before a save, because RTF writing would otherwise drop them silently. Attachments are a separate tray, not inline.
+- Archives are not part of the store yet (Stage 4).
 - Rich text is stored in precomposed (NFC) form. RTF round trips do not keep decomposed sequences (for example `e` plus a combining acute), so a note's first rich save may change those sequences to their precomposed form. The text looks the same. Checklist ranges move with their paragraphs.

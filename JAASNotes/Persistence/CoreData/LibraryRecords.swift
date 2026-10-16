@@ -38,5 +38,22 @@ final class NoteRecord: NSManagedObject {
     @NSManaged var richTextData: Data?
     /// Added in version 3. Versioned checklist sidecar, or nil when the note has no checklist.
     @NSManaged var checklistData: Data?
+    /// Added in version 4. Attachments are deleted with their note.
+    @NSManaged var attachments: NSSet?
     @NSManaged var folder: FolderRecord?
+}
+
+/// Added in version 4. The bytes are stored in the library folder, never in the store (see `AttachmentService`).
+@objc(AttachmentRecord)
+final class AttachmentRecord: NSManagedObject {
+    @NSManaged var id: UUID
+    @NSManaged var originalFilename: String
+    @NSManaged var contentType: String
+    @NSManaged var byteCount: Int64
+    @NSManaged var sha256: String
+    /// Relative to the library folder, for example `Attachments/<id>/payload`. Never an absolute path.
+    @NSManaged var relativePath: String
+    @NSManaged var createdAt: Date
+    @NSManaged var displayOrder: Int32
+    @NSManaged var note: NoteRecord?
 }

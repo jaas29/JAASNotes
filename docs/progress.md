@@ -687,3 +687,62 @@ xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform
 - Searches still match visible content: `RichNoteRepositoryTests.testRichTextIsSearchableByVisibleTextOnly`.
 - Corrupt rich content does not overwrite originals: `RichNoteRepositoryTests`, `RichEditingModelTests`.
 - Stage 3 gate: met for the recorded environment.
+
+## 04-01 — Attachment model, copy pipeline, hashes, reconciliation, backup and restore
+
+- **Status:** COMPLETE for the automated evidence below.
+- **Date:** 2026-10-16
+- **Commit:** not committed yet
+
+### Changes
+
+- **Model:** `JAASNotes 4.xcdatamodel` (current) adds `Attachment` (id, original filename, content type, byte count, SHA-256, relative path, created date, display order) and `Note.attachments` with cascade delete. Version 3 is kept as a prior model and upgrades lightweight (`priorModelNames`).
+- **Service:** `Services/AttachmentService.swift`: `importFile` (size check before copy, copy while hashing and counting, flush, move, commit row, remove bytes if the commit fails), `reconcile` (damaged rows reported, orphan folders moved to Recovery), `removePayloads`, `verifyPayloads`, `isSafeRelativePath`. Links and folders are refused.
+- **Repository:** `createAttachment`, `attachments(forNote:)`, `allAttachments`, `deleteAttachment`. `LibraryRepository` conforms to `AttachmentStore`.
+- **Backup:** snapshots copy `Attachments/` and checksum every payload in the manifest. Validation checks each payload's presence, size, and checksum, so a damaged payload blocks the backup.
+- **Migration:** the candidate library keeps the attachment folder. Version 4 is the current format.
+
+### Commands
+
+```sh
+xcodebuild -project JAASNotes.xcodeproj -scheme JAASNotes -destination 'platform=macOS' -derivedDataPath .build/DerivedData -resultBundlePath .build/TestResults/<new>.xcresult -only-testing:JAASNotesTests test
+```
+
+### Results
+
+- Unit + integration: 202 tests pass.
+- `AttachmentTests` (13): bytes survive source deletion and restart with Unicode filenames; attaching leaves the note revision alone; display order; an injected commit failure leaves no row and no bytes; an interruption after the move leaves bytes that reconciliation moves to Recovery rather than deleting; an oversized file is refused before anything is written; a file at the limit is accepted; symbolic links and folders are refused; a missing payload is reported and its row kept; unsafe stored paths are refused; backup and restore carry attachments with checksums; a damaged payload of the same size blocks the backup and publishes nothing; permanent deletion removes rows, then bytes.
+- Migration: `testVersionThreeLibraryUpgradesWithContentUnchanged` upgrades a generated version 3 library to version 4 with content unchanged.
+- Full suite (221 tests including UI): three UI tests failed at launch in that run (`testChecklistLayoutScreenshot`, `testFormatMenuOffersTheTextCommands`, `testTypingJustBeforeQuitIsSaved`). Run alone, all three pass. This matches the launch-timing failures recorded in 03-02. Not fixed.
+
+### Remaining gaps and risks
+
+- No UI yet: the attachment tray, previews, open/export/remove, and missing-file states are 04-02. Reconciliation is not run automatically on launch yet; it will be wired in with 04-02's missing-file state.
+- Permanent deletion of a note from the model does not yet remove its payload folders (only the repository's cascade and the service function exist). Wire `removePayloads` into the permanent-deletion path with 04-02.
+- The version 3 upgrade test has no attachments because version 3 cannot hold them. The upgrade's folder copy is therefore untested with real payloads.
+- Hashing and copying run on the calling actor. Fine for files up to 100 MiB at this stage; measure in 04-02.
+- Not tested: a crash in the middle of a copy into staging. Staging leftovers are not cleaned up automatically yet; they are never listed as backups or used.
+
+## 04-02 — Attachment tray, previews, open, save copy, remove, missing files
+
+- **Status:** COMPLETE for the automated evidence below. Keyboard and VoiceOver walkthrough of the tray is not yet recorded by the owner.
+- **Date:** 2026-10-16
+- **Commit:** see git log
+
+### Changes
+
+- **Tray:** `Features/Editor/AttachmentTray.swift`: below the note text, one chip per file with an image preview for images, name, size, and buttons: Open, Save Copy…, Remove (with confirmation). Trashed and unreadable notes show the tray read-only. Missing files show "File missing" with Open and Save Copy disabled.
+- **Attach:** Attach File… in the tray and File > Attach File… (Shift-Cmd-A). The chosen file is copied; the note's text and revision are not touched.
+- **Open:** a copy with its own name is written to staging and handed to the app that handles its type. Library bytes are never opened in place.
+- **Missing and damaged bytes:** checked when a note is shown and at launch (reconciliation). Export and open refuse damaged bytes.
+- **Permanent deletion:** removes the rows first, then the payload folders.
+- **Model:** `LibraryModel` attachment operations; `NoteStore` now includes attachment operations.
+
+### Results
+
+- Unit + integration: 208 tests pass, including `AttachmentModelTests` (6): attached file appears and survives relaunch; removal deletes row and bytes; missing bytes show after relaunch and cannot be exported; damaged bytes are never exported; export writes checked bytes; trashing keeps files and permanent deletion removes them.
+
+### Remaining gaps
+
+- Not run: a VoiceOver and keyboard walkthrough of the tray; the open-in-another-app action (it calls NSWorkspace and is not automated).
+- Attachment thumbnails read the file on the main actor. Fine for small images; measure later.

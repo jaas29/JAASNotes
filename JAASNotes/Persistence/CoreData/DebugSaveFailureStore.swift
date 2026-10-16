@@ -26,6 +26,22 @@ actor DebugSaveFailureStore: NoteStore {
         try await base.body(of: id)
     }
 
+    func createAttachment(_ new: NewAttachment) async throws -> AttachmentSnapshot {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func deleteAttachment(id: UUID) async throws {
+        throw LibraryError.saveFailed("Writes are disabled for this test run.")
+    }
+
+    func attachments(forNote noteID: UUID) async throws -> [AttachmentSnapshot] {
+        try await base.attachments(forNote: noteID)
+    }
+
+    func allAttachments() async throws -> [AttachmentSnapshot] {
+        try await base.allAttachments()
+    }
+
     func initializeLibraryIfNeeded() async throws -> LibraryMetadataSnapshot {
         try await base.initializeLibraryIfNeeded()
     }

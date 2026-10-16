@@ -174,7 +174,7 @@ enum LibraryBackupService {
         }
     }
 
-    /// Copies the store files that exist. The store file itself is required.
+    /// Copies the store files that exist, and the attachment payloads. The store file itself is required.
     static func copyStoreFiles(from libraryDirectory: URL, to destination: URL) throws {
         let fileManager = FileManager.default
         let source = libraryDirectory.appending(path: "Store.sqlite", directoryHint: .notDirectory)
@@ -190,14 +190,32 @@ enum LibraryBackupService {
                 throw LibraryBackupError.copyFailed(error.localizedDescription)
             }
         }
+        let attachments = libraryDirectory.appending(path: AttachmentService.attachmentsFolderName, directoryHint: .isDirectory)
+        if fileManager.fileExists(atPath: attachments.path) {
+            do {
+                try fileManager.copyItem(at: attachments, to: destination.appending(path: AttachmentService.attachmentsFolderName, directoryHint: .isDirectory))
+            } catch {
+                throw LibraryBackupError.copyFailed(error.localizedDescription)
+            }
+        }
     }
 
+    /// Checksums the store files and every attachment payload. Keys are paths relative to the library folder.
     static func checksumStoreFiles(in libraryDirectory: URL) throws -> [String: String] {
         var checksums: [String: String] = [:]
         for name in storeFileNames {
             let file = libraryDirectory.appending(path: name, directoryHint: .notDirectory)
             guard FileManager.default.fileExists(atPath: file.path) else { continue }
             checksums[name] = try sha256(of: file)
+        }
+        let attachments = libraryDirectory.appending(path: AttachmentService.attachmentsFolderName, directoryHint: .isDirectory)
+        if let enumerator = FileManager.default.enumerator(at: attachments, includingPropertiesForKeys: [.isRegularFileKey]) {
+            for case let file as URL in enumerator {
+                guard try file.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else { continue }
+                // The enumerator builds each URL from `attachments`, so its path prefix is exactly that path.
+                let relative = AttachmentService.attachmentsFolderName + "/" + String(file.path.dropFirst(attachments.path.count + 1))
+                checksums[relative] = try sha256(of: file)
+            }
         }
         return checksums
     }
@@ -224,6 +242,7 @@ enum LibraryBackupService {
             guard folders.filter(\.isDefault).count == 1 else {
                 throw LibraryBackupError.validationFailed("The library does not have exactly one default folder.")
             }
+            try AttachmentService.verifyPayloads(try await repository.allAttachments(), in: location.libraryDirectoryURL)
             let active = try await repository.activeNotes(inFolder: nil)
             let deleted = try await repository.deletedNotes()
             info = (

@@ -188,3 +188,14 @@ Architecture choices and approved changes. Entries are added as decisions are ma
   - Commands: Format > Checklist (Shift-Cmd-C) adds or removes items on the selected paragraphs. Format > Check or Uncheck Item (Shift-Cmd-Return) toggles the paragraph at the insertion point.
 - **Why:** the RTF writer does not keep custom attributes (D-020), and drawn characters are not controls. A real control gives a state value and a label to assistive technology.
 - **Consequence:** the checkbox layout is measured from the text layout. It was checked in a screenshot, not on every macOS release or with other text sizes. Bullet lists and checklists on the same paragraph are not supported. The checklist indent overrides the bullet indent.
+
+## D-027 — Attachment bytes live beside the store; the row commits only after the bytes are in place
+
+- **Decision:**
+  - Payloads are copied to `Library/Attachments/<UUID>/payload`. Only metadata is in Core Data.
+  - Import copies into staging while hashing and counting bytes, flushes, moves into place, then commits the row. A failed commit removes the moved bytes. An interruption leaves bytes with no row, and reconciliation moves those folders into `Recovery/orphaned-attachments/`.
+  - Attaching does not change the note's revision or `modifiedAt`, so an open editor's next save is not a conflict.
+  - Trashing keeps attachments. Permanent deletion removes the rows (cascade) first, and only then the payload folders, best effort.
+  - The limit is 100 MiB per file, checked before copying and again while copying. It is provisional, as the plan says.
+- **Why:** the store and the file system cannot share one transaction. The order of operations means a row never points at bytes that were not written, and nothing is deleted that might still be needed.
+- **Consequence:** backups and restores copy the attachment folder with the store. Restores of backups made before version 4 have no attachments folder and that is fine. A library moved by migration copies the folder into the candidate, so an upgrade cannot drop attachments. No version 3 library can contain attachments, so that path is only exercised in future upgrades.

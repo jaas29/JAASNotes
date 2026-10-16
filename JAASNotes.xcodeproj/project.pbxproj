@@ -56,6 +56,10 @@
 		A980D137103D3163D136F8D6 /* ChecklistEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65155457CA248A23FE837AE /* ChecklistEditing.swift */; };
 		B39E2C07FF176C3B6060E970 /* ChecklistEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 882D36A8995E36CA452F33C3 /* ChecklistEditingTests.swift */; };
 		7A1F0891102BD73834EEC723 /* ChecklistEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1250A70F1E7164A60FF10F8 /* ChecklistEditorTests.swift */; };
+		AF01A5BEC71386CA04B8D8CD /* AttachmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18084E1B251427E5381B417 /* AttachmentService.swift */; };
+		B6E0C0D5D4F355357541537D /* AttachmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AB07F818FC40CAFF17E4EE5 /* AttachmentTests.swift */; };
+		441003686B99DDD76CEACDBC /* AttachmentTray.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B7C56A8FE69D2B1AA9BF0D /* AttachmentTray.swift */; };
+		E868B7D688F02C13498EB89B /* AttachmentModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 133A358344FB5F4F712ECEBF /* AttachmentModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -131,6 +135,10 @@
 		C65155457CA248A23FE837AE /* ChecklistEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistEditing.swift; sourceTree = "<group>"; };
 		882D36A8995E36CA452F33C3 /* ChecklistEditingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistEditingTests.swift; sourceTree = "<group>"; };
 		F1250A70F1E7164A60FF10F8 /* ChecklistEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistEditorTests.swift; sourceTree = "<group>"; };
+		B18084E1B251427E5381B417 /* AttachmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentService.swift; sourceTree = "<group>"; };
+		2AB07F818FC40CAFF17E4EE5 /* AttachmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentTests.swift; sourceTree = "<group>"; };
+		53B7C56A8FE69D2B1AA9BF0D /* AttachmentTray.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentTray.swift; sourceTree = "<group>"; };
+		133A358344FB5F4F712ECEBF /* AttachmentModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -327,6 +335,7 @@
 		16E9387E72E5BA12B3093AA3 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				53B7C56A8FE69D2B1AA9BF0D /* AttachmentTray.swift */,
 				89CD14D3BEFCEDCFCDF6A33A /* NoteBodyEditor.swift */,
 				65890C2D2AAE3DDD97BC9FA4 /* NoteEditorView.swift */,
 			);
@@ -352,6 +361,7 @@
 		21FD870E86E05B4814A7D356 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				B18084E1B251427E5381B417 /* AttachmentService.swift */,
 				DB018A13BD332ACC0644BDA7 /* RichTextCodec.swift */,
 				DBEE966CDA534F28BCF1A524 /* RecoveryCopy.swift */,
 				FABEC6EF5073DBD7324A806D /* LibraryBackupService.swift */,
@@ -373,6 +383,8 @@
 		CFE4AC878D5E20BB058F5E7A /* Integration */ = {
 			isa = PBXGroup;
 			children = (
+				133A358344FB5F4F712ECEBF /* AttachmentModelTests.swift */,
+				2AB07F818FC40CAFF17E4EE5 /* AttachmentTests.swift */,
 				73D5BE4E2E42C18BFA32BA34 /* RichEditingModelTests.swift */,
 				62095935AF05C482CB457E2D /* RichNoteRepositoryTests.swift */,
 				5A2C5FBE83ECDD9929F699D0 /* SaveTestSupport.swift */,
@@ -503,6 +515,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				441003686B99DDD76CEACDBC /* AttachmentTray.swift in Sources */,
+				AF01A5BEC71386CA04B8D8CD /* AttachmentService.swift in Sources */,
 				A980D137103D3163D136F8D6 /* ChecklistEditing.swift in Sources */,
 				7E1BE19086A70DDED3F46196 /* RichTextCodec.swift in Sources */,
 				21942FCCD08C190B02CE9EE1 /* RichNoteContent.swift in Sources */,
@@ -536,6 +550,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E868B7D688F02C13498EB89B /* AttachmentModelTests.swift in Sources */,
+				B6E0C0D5D4F355357541537D /* AttachmentTests.swift in Sources */,
 				7A1F0891102BD73834EEC723 /* ChecklistEditorTests.swift in Sources */,
 				B39E2C07FF176C3B6060E970 /* ChecklistEditingTests.swift in Sources */,
 				8137244A54CE76AC823B935D /* RichEditingModelTests.swift in Sources */,

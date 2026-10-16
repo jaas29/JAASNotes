@@ -347,9 +347,9 @@ Use official documentation and verify availability against the chosen SDK during
 
 03-04: Integrate rich-content search/previews and execute Stage 3 regression, migration, failure, and accessibility gates. Requires 03-03. Complete when visible text remains searchable and all Stage 1–3 workflows pass in the runnable app with evidence. [COMPLETE]
 
-04-01: Add the Attachment model/migration, staged file-copy pipeline, hashes, reconciliation, and attachment-aware backup/restore. Requires 03-04. Complete when injected failures cannot produce an acknowledged missing payload and copied bytes survive source deletion, restart, and restore. [NOT COMPLETE]
+04-01: Add the Attachment model/migration, staged file-copy pipeline, hashes, reconciliation, and attachment-aware backup/restore. Requires 03-04. Complete when injected failures cannot produce an acknowledged missing payload and copied bytes survive source deletion, restart, and restore. [COMPLETE]
 
-04-02: Add the attachment tray, image previews, file open/export/removal, size validation, and accessible missing-file states. Requires 04-01. Complete when image and ordinary-file workflows work by keyboard and trashed notes retain their files until permanent deletion. [NOT COMPLETE]
+04-02: Add the attachment tray, image previews, file open/export/removal, size validation, and accessible missing-file states. Requires 04-01. Complete when image and ordinary-file workflows work by keyboard and trashed notes retain their files until permanent deletion. [COMPLETE]
 
 04-03: Implement staged plain-text/RTF import/export and versioned portable archives with validation, collision review, ID remapping, and rollback/reconciliation. Requires 04-02. Complete when archive round trips preserve supported notes/folders/checklists/files in a fresh library and malformed/interrupted imports leave no partial visible import. [NOT COMPLETE]
 

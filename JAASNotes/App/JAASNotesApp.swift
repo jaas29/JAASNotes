@@ -80,6 +80,15 @@ struct JAASNotesApp: App {
                 .disabled(model.phase != .ready)
             }
 
+            CommandGroup(after: .saveItem) {
+                Button("Attach File…") {
+                    guard let note = model.selectedNote, note.deletedAt == nil else { return }
+                    AttachmentPanels.chooseFile(model: model, noteID: note.id)
+                }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
+                .disabled(model.selectedNote == nil || model.selectedNote?.deletedAt != nil)
+            }
+
             CommandGroup(replacing: .saveItem) {
                 Button("Save") {
                     Task { await model.flushPendingDrafts() }

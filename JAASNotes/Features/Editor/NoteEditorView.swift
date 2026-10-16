@@ -67,6 +67,8 @@ struct NoteEditorView: View {
                 )
             }
 
+            AttachmentTray(model: model, note: note, isReadOnly: isReadOnly || isUnreadable)
+
             if let deletedAt = note.deletedAt {
                 TrashStatusLine(model: model, noteID: note.id, deletedAt: deletedAt)
             } else if !isUnreadable {

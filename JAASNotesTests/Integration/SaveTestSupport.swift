@@ -98,6 +98,22 @@ actor FaultyNoteStore: NoteStore {
         try await base.body(of: id)
     }
 
+    func createAttachment(_ new: NewAttachment) async throws -> AttachmentSnapshot {
+        try await base.createAttachment(new)
+    }
+
+    func deleteAttachment(id: UUID) async throws {
+        try await base.deleteAttachment(id: id)
+    }
+
+    func attachments(forNote noteID: UUID) async throws -> [AttachmentSnapshot] {
+        try await base.attachments(forNote: noteID)
+    }
+
+    func allAttachments() async throws -> [AttachmentSnapshot] {
+        try await base.allAttachments()
+    }
+
     func updateRichNote(id: UUID, expectedRevision: Int64, title: String, content: RichNoteContent) async throws -> NoteSnapshot {
         if failuresRemaining > 0 {
             failuresRemaining -= 1
